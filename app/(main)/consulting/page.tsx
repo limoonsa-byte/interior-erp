@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 
 type Consultation = {
   id: number;
@@ -18,10 +19,12 @@ function DetailModal({
   data,
   onClose,
   onSaved,
+  userEmail,
 }: {
   data: Consultation;
   onClose: () => void;
   onSaved: () => void;
+  userEmail: string;
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [postcode, setPostcode] = useState("42496");
@@ -77,6 +80,10 @@ function DetailModal({
     const payload = Object.fromEntries(fd.entries());
 
     if (mode === "save") {
+      if (!userEmail) {
+        alert("로그인 정보가 없습니다. 다시 로그인해 주세요.");
+        return;
+      }
       fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,6 +96,7 @@ function DetailModal({
           status: data.status,
           pic: data.pic,
           note: payload.note ?? "",
+          userEmail,
         }),
       })
         .then((res) => {
@@ -422,6 +430,9 @@ function DetailModal({
 }
 
 export default function ConsultingPage() {
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email ?? "";
+
   const [consultations, setConsultations] = useState<Consultation[]>([
     {
       id: 1,
@@ -438,7 +449,12 @@ export default function ConsultingPage() {
   const [active, setActive] = useState<Consultation | null>(null);
 
   const loadFromDb = () => {
-    fetch("/api/consultations")
+    if (!userEmail) return;
+    fetch("/api/consultations", {
+      headers: {
+        "user-email": userEmail,
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -457,12 +473,13 @@ export default function ConsultingPage() {
 
   useEffect(() => {
     loadFromDb();
-  }, []);
+  }, [userEmail]);
 
   return (
     <div className="p-6 bg-white min-h-screen">
       <h2 className="mb-6 text-xl font-bold text-gray-800">
-        상담 <span className="text-blue-600">({consultations.length})</span>건
+        [{userEmail?.split("@")[0] || "사용자"}]님의 상담{" "}
+        <span className="text-blue-600">({consultations.length})</span>건
       </h2>
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -646,6 +663,7 @@ export default function ConsultingPage() {
           data={active}
           onClose={() => setActive(null)}
           onSaved={loadFromDb}
+          userEmail={userEmail}
         />
       )}
     </div>
