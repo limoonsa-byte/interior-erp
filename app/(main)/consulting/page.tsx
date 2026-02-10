@@ -2,8 +2,309 @@
 
 import React, { useState } from "react";
 
+type Consultation = {
+  id: number;
+  customerName: string;
+  contact: string;
+  region: string;
+  address: string;
+  pyung: number;
+  status: string;
+  pic: string;
+  date: string;
+};
+
+function DetailModal({
+  data,
+  onClose,
+}: {
+  data: Consultation;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+        {/* 상단 제목/닫기 */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">상담 상세</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 진행상태 */}
+        <section className="mb-5">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">
+            진행상태
+          </h3>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {["접수", "현장실측", "견적미팅", "견적완료", "상담종단", "계약", "취소", "완료"].map(
+              (label) => (
+                <label
+                  key={label}
+                  className="flex cursor-pointer items-center gap-1"
+                >
+                  <input
+                    type="radio"
+                    name="status"
+                    defaultChecked={label === "접수"}
+                  />
+                  {label}
+                </label>
+              )
+            )}
+          </div>
+        </section>
+
+        {/* 상담이력 / 진행일시 */}
+        <section className="mb-5 grid gap-4 md:grid-cols-[1fr,1fr]">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              상담이력 - 항목
+            </label>
+            <div className="flex gap-2">
+              <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+                상담
+              </button>
+              <input
+                type="text"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue=""
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              진행일시
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              defaultValue="2025. 9. 15. 오후 4:00"
+            />
+          </div>
+        </section>
+
+        {/* 기본 정보 1열 */}
+        <section className="mb-5 grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                고객이름
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={data.customerName}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                지역
+              </label>
+              <select
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={data.region}
+              >
+                <option>서울특별시</option>
+                <option>경기도</option>
+                <option>대구광역시</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                연락처
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={data.contact}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                주소
+              </label>
+              <div className="mb-2 flex gap-2">
+                <input
+                  type="text"
+                  className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  defaultValue="42496"
+                />
+                <button className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white">
+                  검색
+                </button>
+              </div>
+              <input
+                type="text"
+                className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="대구 남구 앞산순환로69길 19-1"
+              />
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="202호"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 평수, 준공연도, 공실일자, 입주일자 */}
+        <section className="mb-5 grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                평수
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={10}
+                  max={60}
+                  defaultValue={data.pyung}
+                  className="flex-1"
+                />
+                <span className="w-16 text-right text-sm text-gray-800">
+                  {data.pyung}평
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                공실일자
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="2025. 9. 30."
+              />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                준공년도
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  defaultValue="2002"
+                />
+                <span className="text-sm text-gray-600">년</span>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                입주일자
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="2025. 10. 31."
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 시공범위 / 예산 / 담당자 / 요청사항 */}
+        <section className="mb-5 space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              시공범위
+            </label>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {[
+                "샤시제외",
+                "전체시공",
+                "도배",
+                "바닥",
+                "거실욕실",
+                "안방욕실",
+                "싱크대",
+                "전기조명",
+                "중문",
+                "확장",
+                "방수",
+                "신발장",
+                "붙박이장",
+                "화장대",
+                "탑샷",
+                "문교체",
+              ].map((label, idx) => (
+                <label
+                  key={label}
+                  className="flex cursor-pointer items-center gap-1"
+                >
+                  <input
+                    type="checkbox"
+                    defaultChecked={idx < 2 || label === "중문" || label === "확장"}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                시공예산
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  defaultValue="33,000,000"
+                />
+                <span className="text-sm text-gray-700">원</span>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                담당자
+              </label>
+              <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option>[가맹점교육용] 가맹점교육용</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              요청사항
+            </label>
+            <textarea
+              className="h-24 w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              defaultValue="빠른시공"
+            />
+          </div>
+        </section>
+
+        {/* 하단 버튼 */}
+        <div className="mt-6 flex justify-end gap-3">
+          <button className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            견적작성
+          </button>
+          <button className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConsultingPage() {
-  const [consultations] = useState([
+  const [consultations] = useState<Consultation[]>([
     {
       id: 1,
       customerName: "디무디",
@@ -16,6 +317,7 @@ export default function ConsultingPage() {
       date: "2024-02-10",
     },
   ]);
+  const [active, setActive] = useState<Consultation | null>(null);
 
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -140,7 +442,15 @@ export default function ConsultingPage() {
                   <input type="checkbox" />
                 </td>
                 <td className="p-3">{idx + 1}</td>
-                <td className="p-3 font-medium">{item.customerName}</td>
+                <td className="p-3 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setActive(item)}
+                    className="text-blue-600 underline-offset-2 hover:underline"
+                  >
+                    {item.customerName}
+                  </button>
+                </td>
                 <td className="p-3">{item.contact}</td>
                 <td className="p-3">{item.region}</td>
                 <td className="p-3 truncate text-left">{item.address}</td>
@@ -191,6 +501,7 @@ export default function ConsultingPage() {
           </button>
         </div>
       </div>
+      {active && <DetailModal data={active} onClose={() => setActive(null)} />}
     </div>
   );
 }
