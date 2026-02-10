@@ -17,7 +17,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
 import { useSidebar } from "./SidebarContext";
 
 const menuItems = [
@@ -36,10 +35,22 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebar();
-  const { data: session } = useSession();
+  const [companyLabel, setCompanyLabel] = React.useState("로그인 회사");
 
-  const userLabel =
-    session?.user?.name || session?.user?.email || "로그인 사용자";
+  React.useEffect(() => {
+    fetch("/api/company/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.company?.name) {
+          setCompanyLabel(data.company.name);
+        } else if (data.company?.code) {
+          setCompanyLabel(data.company.code);
+        }
+      })
+      .catch(() => {
+        setCompanyLabel("로그인 회사");
+      });
+  }, []);
 
   return (
     <aside
@@ -53,18 +64,18 @@ export function Sidebar() {
         {!collapsed && (
           <button
             type="button"
-            onClick={() =>
-              signOut({
-                callbackUrl: "/login",
-              })
-            }
+            onClick={() => {
+              document.cookie =
+                "company=; Max-Age=0; path=/; SameSite=Lax; Secure";
+              window.location.href = "/login";
+            }}
             className="flex flex-col items-start text-left"
           >
             <span className="truncate text-lg font-semibold">
               인테리어 ERP
             </span>
             <span className="mt-0.5 truncate text-[11px] text-slate-300 underline-offset-2 hover:underline">
-              {userLabel} 님, 환영합니다. (클릭 시 로그아웃)
+              {companyLabel} 님, 환영합니다. (클릭 시 로그아웃)
             </span>
           </button>
         )}
