@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 type Consultation = {
   id: number;
@@ -21,6 +21,53 @@ function DetailModal({
   data: Consultation;
   onClose: () => void;
 }) {
+  const [postcode, setPostcode] = useState("42496");
+  const [roadAddress, setRoadAddress] = useState(
+    "대구 남구 앞산순환로69길 19-1"
+  );
+  const [detailAddress, setDetailAddress] = useState("202호");
+
+  const handleSearchAddress = () => {
+    if (typeof window === "undefined") return;
+
+    const openPostcode = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { daum } = window as any;
+      if (!daum || !daum.Postcode) return;
+
+      new daum.Postcode({
+        oncomplete: (result: {
+          zonecode: string;
+          roadAddress: string;
+          buildingName?: string;
+        }) => {
+          setPostcode(result.zonecode);
+          const road =
+            result.roadAddress ||
+            `${data.region} ${data.address.replace(postcode, "").trim()}`;
+          setRoadAddress(
+            result.buildingName ? `${road} ${result.buildingName}` : road
+          );
+          setDetailAddress("");
+        },
+      }).open();
+    };
+
+    // 스크립트가 없으면 먼저 로드
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    if (!w.daum || !w.daum.Postcode) {
+      const script = document.createElement("script");
+      script.src =
+        "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+      script.async = true;
+      script.onload = openPostcode;
+      document.body.appendChild(script);
+    } else {
+      openPostcode();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
       <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
@@ -71,11 +118,24 @@ function DetailModal({
                 상담
               </button>
             </div>
-            <div className="flex flex-1 items-center gap-3">
+            <div
+              className="flex flex-1 items-center gap-3 cursor-pointer"
+              onClick={() => {
+                const el = document.getElementById(
+                  "consulting-datetime"
+                ) as HTMLInputElement | null;
+                if (el && typeof el.showPicker === "function") {
+                  el.showPicker();
+                } else {
+                  el?.focus();
+                }
+              }}
+            >
               <span className="whitespace-nowrap text-gray-700">진행일시</span>
               <input
+                id="consulting-datetime"
                 type="datetime-local"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 defaultValue="2025-09-15T16:00"
               />
             </div>
@@ -140,19 +200,12 @@ function DetailModal({
                 <input
                   type="text"
                   className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  defaultValue="42496"
+                  value={postcode}
+                  onChange={(e) => setPostcode(e.target.value)}
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      const query = `${data.region} ${data.address}`;
-                      window.open(
-                        `https://map.kakao.com/?q=${encodeURIComponent(query)}`,
-                        "_blank"
-                      );
-                    }
-                  }}
+                  onClick={handleSearchAddress}
                   className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white"
                 >
                   검색
@@ -161,12 +214,14 @@ function DetailModal({
               <input
                 type="text"
                 className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="대구 남구 앞산순환로69길 19-1"
+                value={roadAddress}
+                onChange={(e) => setRoadAddress(e.target.value)}
               />
               <input
                 type="text"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="202호"
+                value={detailAddress}
+                onChange={(e) => setDetailAddress(e.target.value)}
               />
             </div>
           </div>
