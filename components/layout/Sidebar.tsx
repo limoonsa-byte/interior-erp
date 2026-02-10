@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useSidebar } from "./SidebarContext";
 
 const menuItems = [
@@ -51,14 +51,22 @@ export function Sidebar() {
     >
       <div className="flex h-16 flex-col justify-center border-b border-slate-700/50 px-3">
         {!collapsed && (
-          <>
+          <button
+            type="button"
+            onClick={() =>
+              signOut({
+                callbackUrl: "/login",
+              })
+            }
+            className="flex flex-col items-start text-left"
+          >
             <span className="truncate text-lg font-semibold">
               인테리어 ERP
             </span>
-            <span className="mt-0.5 truncate text-[11px] text-slate-300">
-              {userLabel} 님, 환영합니다.
+            <span className="mt-0.5 truncate text-[11px] text-slate-300 underline-offset-2 hover:underline">
+              {userLabel} 님, 환영합니다. (클릭 시 로그아웃)
             </span>
-          </>
+          </button>
         )}
       </div>
       <nav className="flex-1 overflow-y-auto py-3">
