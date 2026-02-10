@@ -2,8 +2,9 @@ import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-function getCompanyFromCookie() {
-  const cookie = cookies().get("company");
+async function getCompanyFromCookie() {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get("company");
   if (!cookie) return null;
   try {
     return JSON.parse(cookie.value) as { id: number; code: string; name: string };
@@ -15,7 +16,7 @@ function getCompanyFromCookie() {
 // 회사별 상담 조회
 export async function GET() {
   try {
-    const company = getCompanyFromCookie();
+    const company = await getCompanyFromCookie();
     if (!company) {
       return NextResponse.json([], { status: 200 });
     }
@@ -45,7 +46,7 @@ export async function GET() {
 // 회사별 상담 저장
 export async function POST(request: Request) {
   try {
-    const company = getCompanyFromCookie();
+    const company = await getCompanyFromCookie();
     if (!company) {
       return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
     }
