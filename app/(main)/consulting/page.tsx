@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
 
 type Consultation = {
   id: number;
@@ -430,9 +429,6 @@ function DetailModal({
 }
 
 export default function ConsultingPage() {
-  const { data: session } = useSession();
-  const userEmail = session?.user?.email ?? "";
-
   const [consultations, setConsultations] = useState<Consultation[]>([
     {
       id: 1,
@@ -449,12 +445,7 @@ export default function ConsultingPage() {
   const [active, setActive] = useState<Consultation | null>(null);
 
   const loadFromDb = () => {
-    if (!userEmail) return;
-    fetch("/api/consultations", {
-      headers: {
-        "user-email": userEmail,
-      },
-    })
+    fetch("/api/consultations")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -478,8 +469,7 @@ export default function ConsultingPage() {
   return (
     <div className="p-6 bg-white min-h-screen">
       <h2 className="mb-6 text-xl font-bold text-gray-800">
-        [{userEmail?.split("@")[0] || "사용자"}]님의 상담{" "}
-        <span className="text-blue-600">({consultations.length})</span>건
+        상담 <span className="text-blue-600">({consultations.length})</span>건
       </h2>
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -663,7 +653,7 @@ export default function ConsultingPage() {
           data={active}
           onClose={() => setActive(null)}
           onSaved={loadFromDb}
-          userEmail={userEmail}
+          userEmail=""
         />
       )}
     </div>
