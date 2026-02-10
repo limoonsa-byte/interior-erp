@@ -1,7 +1,7 @@
 # 🚀 Vercel 배포 가이드 (진짜 인터넷 주소 만들기)
 
-지금은 `localhost:3000`(사장님 PC만 접속 가능) 상태입니다.  
-직원들이 접속할 **진짜 주소**(예: `https://interior-erp.vercel.app`)를 만들려면 아래 순서대로 진행하세요.
+- **로컬:** `localhost:3000` (사장님 PC에서만 접속)
+- **배포 후:** 주소가 `https://○○○.vercel.app` 처럼 **바뀌면** 아래 3단계만 하면 됩니다.
 
 ---
 
@@ -50,7 +50,10 @@ git push origin main
 
 ---
 
-## 3단계: 배포 후 꼭 할 일 (구글 + Vercel)
+## 3단계: 주소가 바뀌었을 때 꼭 할 일 (구글 + Vercel)
+
+배포가 끝나면 **진짜 주소**(예: `https://interior-erp-xxx.vercel.app`)가 생깁니다.  
+이 주소로 로그인이 되게 하려면 아래 두 가지를 반드시 해야 합니다.
 
 ### ① NEXTAUTH_URL 채우기 (Vercel)
 
@@ -77,4 +80,13 @@ git push origin main
 2. Vercel에서 Import → 환경 변수 넣고 Deploy  
 3. 나온 주소로 `NEXTAUTH_URL` 설정 + 구글 리디렉션 URI 추가  
 
-이후 직원들에게 `https://xxx.vercel.app` 주소만 공유하면 됩니다.
+이후 직원들에게 **진짜 주소**(예: `https://interior-erp-xxx.vercel.app`)만 공유하면 됩니다.
+
+---
+
+### ⚠️ 정리: 주소가 바뀌었을 때 체크리스트
+
+| 할 일 | 어디서 |
+|--------|--------|
+| `NEXTAUTH_URL` = `https://나온주소.vercel.app` | Vercel → 프로젝트 → Settings → Environment Variables → 저장 후 **Redeploy** |
+| 리디렉션 URI `https://나온주소.vercel.app/api/auth/callback/google` 추가 | Google Cloud Console → 사용자 인증 정보 → OAuth 클라이언트 → **저장** |
