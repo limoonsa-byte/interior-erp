@@ -122,7 +122,7 @@ export default function LoginPage() {
                 onChange={(e) =>
                   setSignup((s) => ({ ...s, name: e.target.value }))
                 }
-                placeholder="예: 디자인무디"
+                placeholder="예: 인테리어 회사명"
               />
             </div>
             <div>
