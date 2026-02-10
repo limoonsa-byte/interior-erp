@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Consultation = {
   id: number;
@@ -17,10 +17,13 @@ type Consultation = {
 function DetailModal({
   data,
   onClose,
+  onSaved,
 }: {
   data: Consultation;
   onClose: () => void;
+  onSaved: () => void;
 }) {
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [postcode, setPostcode] = useState("42496");
   const [roadAddress, setRoadAddress] = useState(
     "대구 남구 앞산순환로69길 19-1"
@@ -68,21 +71,57 @@ function DetailModal({
     }
   };
 
+  const handleAction = (mode: "save" | "estimate") => {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const payload = Object.fromEntries(fd.entries());
+
+    if (mode === "save") {
+      fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: data.customerName,
+          contact: data.contact,
+          region: data.region,
+          address: `${postcode} ${roadAddress} ${detailAddress}`.trim(),
+          pyung: data.pyung,
+          status: data.status,
+          pic: data.pic,
+          note: payload.note ?? "",
+        }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("save failed");
+          alert("상담이 저장되었습니다.");
+          onClose();
+          onSaved();
+        })
+        .catch(() => {
+          alert("저장 중 오류가 발생했습니다.");
+        });
+      return;
+    }
+
+    window.location.href = "/estimate";
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
       <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-        {/* 상단 제목/닫기 */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">상담 상세</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100"
-            aria-label="닫기"
-          >
-            ✕
-          </button>
-        </div>
+        <form ref={formRef}>
+          {/* 상단 제목/닫기 */}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">상담 상세</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100"
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+          </div>
 
         {/* 진행상태 */}
         <section className="mb-5">
@@ -359,22 +398,31 @@ function DetailModal({
           </div>
         </section>
 
-        {/* 하단 버튼 */}
-        <div className="mt-6 flex justify-end gap-3">
-          <button className="rounded-lg border border-gray-400 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50">
-            견적작성
-          </button>
-          <button className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-            저장
-          </button>
-        </div>
+          {/* 하단 버튼 */}
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => handleAction("estimate")}
+              className="rounded-lg border border-gray-400 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+            >
+              견적작성
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAction("save")}
+              className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              저장
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
 export default function ConsultingPage() {
-  const [consultations] = useState<Consultation[]>([
+  const [consultations, setConsultations] = useState<Consultation[]>([
     {
       id: 1,
       customerName: "디무디",
@@ -388,6 +436,28 @@ export default function ConsultingPage() {
     },
   ]);
   const [active, setActive] = useState<Consultation | null>(null);
+
+  const loadFromDb = () => {
+    fetch("/api/consultations")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setConsultations(
+            data.map((item) => ({
+              ...item,
+              pyung: Number(item.pyung ?? 0),
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("consultations load error", err);
+      });
+  };
+
+  useEffect(() => {
+    loadFromDb();
+  }, []);
 
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -571,7 +641,13 @@ export default function ConsultingPage() {
           </button>
         </div>
       </div>
-      {active && <DetailModal data={active} onClose={() => setActive(null)} />}
+      {active && (
+        <DetailModal
+          data={active}
+          onClose={() => setActive(null)}
+          onSaved={loadFromDb}
+        />
+      )}
     </div>
   );
 }
