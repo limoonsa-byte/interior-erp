@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
@@ -35,9 +36,9 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebar();
-  const [companyLabel, setCompanyLabel] = React.useState("로그인 회사");
+  const [companyLabel, setCompanyLabel] = useState("로그인 회사");
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetch("/api/company/me")
       .then((res) => res.json())
       .then((data) => {
