@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useSidebar } from "./SidebarContext";
 
 const menuItems = [
@@ -35,6 +36,10 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebar();
+  const { data: session } = useSession();
+
+  const userLabel =
+    session?.user?.name || session?.user?.email || "로그인 사용자";
 
   return (
     <aside
@@ -44,9 +49,16 @@ export function Sidebar() {
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      <div className="flex h-14 items-center border-b border-slate-700/50 px-3">
+      <div className="flex h-16 flex-col justify-center border-b border-slate-700/50 px-3">
         {!collapsed && (
-          <span className="truncate text-lg font-semibold">인테리어 ERP</span>
+          <>
+            <span className="truncate text-lg font-semibold">
+              인테리어 ERP
+            </span>
+            <span className="mt-0.5 truncate text-[11px] text-slate-300">
+              {userLabel} 님, 환영합니다.
+            </span>
+          </>
         )}
       </div>
       <nav className="flex-1 overflow-y-auto py-3">
