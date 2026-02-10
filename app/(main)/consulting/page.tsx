@@ -18,12 +18,10 @@ function DetailModal({
   data,
   onClose,
   onSaved,
-  userEmail,
 }: {
   data: Consultation;
   onClose: () => void;
   onSaved: () => void;
-  userEmail: string;
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [postcode, setPostcode] = useState("42496");
@@ -79,10 +77,6 @@ function DetailModal({
     const payload = Object.fromEntries(fd.entries());
 
     if (mode === "save") {
-      if (!userEmail) {
-        alert("로그인 정보가 없습니다. 다시 로그인해 주세요.");
-        return;
-      }
       fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,7 +89,6 @@ function DetailModal({
           status: data.status,
           pic: data.pic,
           note: payload.note ?? "",
-          userEmail,
         }),
       })
         .then((res) => {
@@ -464,7 +457,7 @@ export default function ConsultingPage() {
 
   useEffect(() => {
     loadFromDb();
-  }, [userEmail]);
+  }, []);
 
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -653,7 +646,6 @@ export default function ConsultingPage() {
           data={active}
           onClose={() => setActive(null)}
           onSaved={loadFromDb}
-          userEmail=""
         />
       )}
     </div>
