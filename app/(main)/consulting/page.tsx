@@ -62,31 +62,23 @@ function DetailModal({
         </section>
 
         {/* 상담이력 / 진행일시 */}
-        <section className="mb-5 grid gap-4 md:grid-cols-[1fr,1fr]">
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">
-              상담이력 - 항목
-            </label>
-            <div className="flex gap-2">
+        <section className="mb-5">
+          <p className="mb-2 text-sm font-semibold text-gray-700">상담이력</p>
+          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-12 text-gray-700">항목</span>
               <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
                 상담
               </button>
+            </div>
+            <div className="flex flex-1 items-center gap-3">
+              <span className="whitespace-nowrap text-gray-700">진행일시</span>
               <input
-                type="text"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue=""
+                type="datetime-local"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="2025-09-15T16:00"
               />
             </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">
-              진행일시
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              defaultValue="2025. 9. 15. 오후 4:00"
-            />
           </div>
         </section>
 
@@ -114,7 +106,18 @@ function DetailModal({
                 <option>서울특별시</option>
                 <option>경기도</option>
                 <option>대구광역시</option>
+                <option>부산광역시</option>
               </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-gray-700">
+                아파트명
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue="L앞산아파트"
+              />
             </div>
           </div>
 
@@ -139,7 +142,19 @@ function DetailModal({
                   className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   defaultValue="42496"
                 />
-                <button className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      const query = `${data.region} ${data.address}`;
+                      window.open(
+                        `https://map.kakao.com/?q=${encodeURIComponent(query)}`,
+                        "_blank"
+                      );
+                    }
+                  }}
+                  className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white"
+                >
                   검색
                 </button>
               </div>
@@ -291,7 +306,7 @@ function DetailModal({
 
         {/* 하단 버튼 */}
         <div className="mt-6 flex justify-end gap-3">
-          <button className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+          <button className="rounded-lg border border-gray-400 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50">
             견적작성
           </button>
           <button className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
