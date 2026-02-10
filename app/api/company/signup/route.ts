@@ -1,6 +1,5 @@
 import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -33,10 +32,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
+    // TODO: 보안 강화 단계에서 bcrypt 등으로 암호화 처리
     const inserted =
-      await sql`INSERT INTO companies (name, code, password_hash) VALUES (${name}, ${code}, ${passwordHash}) RETURNING id`;
+      await sql`INSERT INTO companies (name, code, password_hash) VALUES (${name}, ${code}, ${password}) RETURNING id`;
 
     const companyId = inserted.rows[0].id as number;
 

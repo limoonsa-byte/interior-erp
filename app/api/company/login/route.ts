@@ -1,6 +1,5 @@
 import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -36,15 +35,7 @@ export async function POST(request: Request) {
       password_hash: string | null;
     };
 
-    if (!row.password_hash) {
-      return NextResponse.json(
-        { error: "이 회사는 비밀번호가 설정되어 있지 않습니다." },
-        { status: 401 }
-      );
-    }
-
-    const ok = await bcrypt.compare(password, row.password_hash);
-    if (!ok) {
+    if (!row.password_hash || row.password_hash !== password) {
       return NextResponse.json(
         { error: "회사코드 또는 비밀번호가 올바르지 않습니다." },
         { status: 401 }
