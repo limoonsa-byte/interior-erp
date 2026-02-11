@@ -73,7 +73,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Success" }, { status: 200 });
   } catch (error) {
     console.error("DB Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    const message =
+      error instanceof Error && /consulted_at|column/i.test(error.message)
+        ? "DB에 consulted_at 컬럼이 없습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql 을 실행해 주세요."
+        : "Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

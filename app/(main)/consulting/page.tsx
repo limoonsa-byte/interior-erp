@@ -11,6 +11,11 @@ function getTodayDatetimeLocal(): string {
   return `${y}-${m}-${day}T00:00`;
 }
 
+/** 오늘 날짜 (type="date"용 YYYY-MM-DD). 기준날짜/기본값용 */
+function getTodayDateLocal(): string {
+  return getTodayDatetimeLocal().slice(0, 10);
+}
+
 type Consultation = {
   id: number;
   customerName: string;
@@ -123,14 +128,15 @@ function DetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-        .then((res) => {
-          if (!res.ok) throw new Error("save failed");
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error((data as { error?: string }).error || "저장 실패");
           alert(isEdit ? "상담이 수정되었습니다." : "상담이 등록되었습니다.");
           onClose();
           onSaved();
         })
-        .catch(() => {
-          alert("저장 중 오류가 발생했습니다.");
+        .catch((e) => {
+          alert(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.");
         });
       return;
     }
@@ -284,35 +290,33 @@ function DetailModal({
           </div>
         </section>
 
-        {/* 평수, 준공연도, 공실일자, 입주일자 */}
+        {/* 평수, 준공연도, 공사 시작 날짜, 입주일자 */}
         <section className="mb-5 grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
                 평수
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <input
-                  type="range"
+                  type="number"
                   name="pyung"
-                  min={10}
-                  max={60}
+                  min={1}
+                  max={999}
                   defaultValue={data.pyung || 0}
-                  className="flex-1"
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 />
-                <span className="w-16 text-right text-sm text-gray-800">
-                  {(data.pyung || 0)}평
-                </span>
+                <span className="text-sm text-gray-600">평</span>
               </div>
             </div>
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
-                공실일자
+                공사 시작 날짜
               </label>
               <input
-                type="text"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="2025. 9. 30."
+                type="date"
+                className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={getTodayDateLocal()}
               />
             </div>
           </div>
@@ -335,9 +339,9 @@ function DetailModal({
                 입주일자
               </label>
               <input
-                type="text"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="2025. 10. 31."
+                type="date"
+                className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={getTodayDateLocal()}
               />
             </div>
           </div>

@@ -30,7 +30,7 @@
 5. 상담 API 회사 세션 연동
 - app/api/consultations/route.ts
   - cookies()에서 company 쿠키 읽어 회사 식별.
-  - GET: 해당 company_id의 상담만 조회.
+  - GET: 해당 company_id의 상담만 조회.a
   - POST: company_id로 상담 INSERT.
 
 6. 상담 화면(/consulting) 정리
