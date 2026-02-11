@@ -161,8 +161,8 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentPin: cur, newPin: neu }),
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
           setPwCurrent("");
           setPwNew("");
