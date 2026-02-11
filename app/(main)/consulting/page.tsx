@@ -20,13 +20,14 @@ type Consultation = {
   id: number;
   customerName: string;
   contact: string;
-  region: string;
   address: string;
   pyung: number;
   status: string;
   pic: string;
   note?: string;
   consultedAt?: string;
+  siteMeasurementAt?: string;
+  estimateMeetingAt?: string;
   scope?: string[];
   budget?: string;
   completionYear?: string;
@@ -64,6 +65,9 @@ function DetailModal({
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const siteMeasurementInputRef = useRef<HTMLInputElement | null>(null);
+  const estimateMeetingInputRef = useRef<HTMLInputElement | null>(null);
+  const [statusSelection, setStatusSelection] = useState(data.status || "접수");
   const defaultScopeItems = [
     "샤시제외", "전체시공", "도배", "바닥", "거실욕실", "안방욕실", "싱크대", "전기조명",
     "중문", "확장", "방수", "신발장", "붙박이장", "화장대", "문교체",
@@ -147,13 +151,14 @@ function DetailModal({
     return {
       customerName: (fd.get("customerName") as string) ?? data.customerName,
       contact: (fd.get("contact") as string) ?? data.contact,
-      region: data.region ?? "",
       address,
       pyung: Number(fd.get("pyung")) || data.pyung,
-      status: (fd.get("status") as string) ?? data.status,
+      status: statusSelection,
       pic: (fd.get("pic") as string) ?? data.pic,
       note: (fd.get("note") as string) ?? "",
       consultedAt: (fd.get("consultedAt") as string) || undefined,
+      siteMeasurementAt: (fd.get("siteMeasurementAt") as string)?.trim() || undefined,
+      estimateMeetingAt: (fd.get("estimateMeetingAt") as string)?.trim() || undefined,
       scope,
       budget: budget || undefined,
       completionYear: (fd.get("completionYear") as string)?.trim() || undefined,
@@ -241,13 +246,17 @@ function DetailModal({
               (label) => (
                 <label
                   key={label}
+                  htmlFor={`status-${label}`}
                   className="flex cursor-pointer items-center gap-1"
+                  onClick={() => setStatusSelection(label)}
                 >
                   <input
+                    id={`status-${label}`}
                     type="radio"
                     name="status"
                     value={label}
-                    defaultChecked={label === (data.status || "접수")}
+                    checked={statusSelection === label}
+                    onChange={() => setStatusSelection(label)}
                   />
                   {label}
                 </label>
@@ -255,6 +264,76 @@ function DetailModal({
             )}
           </div>
         </section>
+
+        {/* 현장실측날짜 (진행상태가 현장실측일 때만 표시) */}
+        {statusSelection === "현장실측" && (
+          <section className="mb-5">
+            <p className="mb-2 text-sm font-semibold text-gray-700">현장실측날짜</p>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (typeof siteMeasurementInputRef.current?.showPicker === "function") {
+                  siteMeasurementInputRef.current.showPicker();
+                } else {
+                  siteMeasurementInputRef.current?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  siteMeasurementInputRef.current?.focus();
+                }
+              }}
+              className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4 cursor-pointer hover:bg-gray-100/80 transition-colors"
+            >
+              <span className="whitespace-nowrap text-gray-700">현장실측날짜</span>
+              <input
+                ref={siteMeasurementInputRef}
+                name="siteMeasurementAt"
+                type="datetime-local"
+                className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                defaultValue={data.siteMeasurementAt ? data.siteMeasurementAt.slice(0, 16) : getTodayDatetimeLocal()}
+                min={getTodayDatetimeLocal()}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* 견적미팅날짜 (진행상태가 견적미팅일 때만 표시) */}
+        {statusSelection === "견적미팅" && (
+          <section className="mb-5">
+            <p className="mb-2 text-sm font-semibold text-gray-700">견적미팅날짜</p>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (typeof estimateMeetingInputRef.current?.showPicker === "function") {
+                  estimateMeetingInputRef.current.showPicker();
+                } else {
+                  estimateMeetingInputRef.current?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  estimateMeetingInputRef.current?.focus();
+                }
+              }}
+              className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4 cursor-pointer hover:bg-gray-100/80 transition-colors"
+            >
+              <span className="whitespace-nowrap text-gray-700">견적미팅날짜</span>
+              <input
+                ref={estimateMeetingInputRef}
+                name="estimateMeetingAt"
+                type="datetime-local"
+                className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                defaultValue={data.estimateMeetingAt ? data.estimateMeetingAt.slice(0, 16) : getTodayDatetimeLocal()}
+                min={getTodayDatetimeLocal()}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </section>
+        )}
 
         {/* 상담 예약날짜 */}
         <section className="mb-5">
@@ -612,13 +691,14 @@ const emptyConsultation: Consultation = {
   id: 0,
   customerName: "",
   contact: "",
-  region: "대구광역시",
   address: "",
   pyung: 0,
   status: "접수",
   pic: "",
   budget: undefined,
   completionYear: undefined,
+  siteMeasurementAt: undefined,
+  estimateMeetingAt: undefined,
   date: "",
 };
 
@@ -628,7 +708,6 @@ export default function ConsultingPage() {
       id: 1,
       customerName: "디무디",
       contact: "010-9787-9595",
-      region: "대구광역시",
       address: "대구 남구 앞산순환로69길 19-1 202호",
       pyung: 33,
       status: "진행중",
@@ -652,13 +731,14 @@ export default function ConsultingPage() {
             id: Number(item.id),
             customerName: String(item.customerName ?? item.customer_name ?? ""),
             contact: String(item.contact ?? ""),
-            region: String(item.region ?? ""),
             address: String(item.address ?? ""),
             pyung: Number(item.pyung ?? 0),
             status: String(item.status ?? ""),
             pic: String(item.pic ?? ""),
             note: item.note != null ? String(item.note) : undefined,
             consultedAt: item.consultedAt != null ? String(item.consultedAt) : undefined,
+            siteMeasurementAt: item.siteMeasurementAt != null ? String(item.siteMeasurementAt) : undefined,
+            estimateMeetingAt: item.estimateMeetingAt != null ? String(item.estimateMeetingAt) : undefined,
             scope: Array.isArray(item.scope) ? (item.scope as string[]) : undefined,
             budget: item.budget != null ? String(item.budget) : undefined,
             completionYear: item.completionYear != null ? String(item.completionYear) : undefined,

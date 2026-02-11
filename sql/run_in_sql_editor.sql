@@ -27,3 +27,9 @@ ALTER TABLE consultations ADD COLUMN IF NOT EXISTS budget TEXT;
 
 -- 6) 준공년도
 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS completion_year TEXT;
+
+-- 7) 현장실측날짜
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS site_measurement_at TEXT;
+
+-- 8) 견적미팅날짜
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS estimate_meeting_at TEXT;

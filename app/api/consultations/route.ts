@@ -37,7 +37,6 @@ export async function GET() {
         id: row.id,
         customerName: row.customer_name,
         contact: row.contact,
-        region: row.region,
         address: row.address,
         pyung: row.pyung,
         status: row.status,
@@ -47,6 +46,8 @@ export async function GET() {
         scope,
         budget: row.budget != null ? String(row.budget) : undefined,
         completionYear: row.completion_year != null ? String(row.completion_year) : undefined,
+        siteMeasurementAt: row.site_measurement_at != null ? String(row.site_measurement_at) : undefined,
+        estimateMeetingAt: row.estimate_meeting_at != null ? String(row.estimate_meeting_at) : undefined,
       };
     });
 
@@ -69,7 +70,6 @@ export async function POST(request: Request) {
     const {
       customerName,
       contact,
-      region,
       address,
       pyung,
       status,
@@ -79,15 +79,19 @@ export async function POST(request: Request) {
       scope,
       budget,
       completionYear,
+      siteMeasurementAt,
+      estimateMeetingAt,
     } = body;
 
     const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
     const budgetStr = budget != null ? String(budget) : null;
     const completionYearStr = completionYear != null ? String(completionYear) : null;
+    const siteMeasurementAtStr = siteMeasurementAt != null ? String(siteMeasurementAt) : null;
+    const estimateMeetingAtStr = estimateMeetingAt != null ? String(estimateMeetingAt) : null;
 
     await sql`
-      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at, scope, budget, completion_year)
-      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson}, ${budgetStr}, ${completionYearStr})
+      INSERT INTO consultations (company_id, customer_name, contact, address, pyung, status, pic, note, consulted_at, scope, budget, completion_year, site_measurement_at, estimate_meeting_at)
+      VALUES (${company.id}, ${customerName}, ${contact}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson}, ${budgetStr}, ${completionYearStr}, ${siteMeasurementAtStr}, ${estimateMeetingAtStr})
     `;
 
     return NextResponse.json({ message: "Success" }, { status: 200 });

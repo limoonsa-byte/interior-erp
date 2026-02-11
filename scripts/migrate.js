@@ -30,6 +30,10 @@ async function migrate() {
     console.log("[migrate] budget OK");
     await sql`ALTER TABLE consultations ADD COLUMN IF NOT EXISTS completion_year TEXT`;
     console.log("[migrate] completion_year OK");
+    await sql`ALTER TABLE consultations ADD COLUMN IF NOT EXISTS site_measurement_at TEXT`;
+    console.log("[migrate] site_measurement_at OK");
+    await sql`ALTER TABLE consultations ADD COLUMN IF NOT EXISTS estimate_meeting_at TEXT`;
+    console.log("[migrate] estimate_meeting_at OK");
     console.log("[migrate] 완료");
   } catch (err) {
     console.error("[migrate] 실패:", err.message);

@@ -36,7 +36,6 @@ export async function PATCH(
     const {
       customerName,
       contact,
-      region,
       address,
       pyung,
       status,
@@ -46,18 +45,21 @@ export async function PATCH(
       scope,
       budget,
       completionYear,
+      siteMeasurementAt,
+      estimateMeetingAt,
     } = body;
 
     const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
     const budgetStr = budget != null ? String(budget) : null;
     const completionYearStr = completionYear != null ? String(completionYear) : null;
+    const siteMeasurementAtStr = siteMeasurementAt != null ? String(siteMeasurementAt) : null;
+    const estimateMeetingAtStr = estimateMeetingAt != null ? String(estimateMeetingAt) : null;
 
     const result = await sql`
       UPDATE consultations
       SET
         customer_name = COALESCE(${customerName ?? null}, customer_name),
         contact = COALESCE(${contact ?? null}, contact),
-        region = COALESCE(${region ?? null}, region),
         address = COALESCE(${address ?? null}, address),
         pyung = COALESCE(${pyung ?? null}, pyung),
         status = COALESCE(${status ?? null}, status),
@@ -66,7 +68,9 @@ export async function PATCH(
         consulted_at = COALESCE(${consultedAt ?? null}, consulted_at),
         scope = ${scopeJson},
         budget = ${budgetStr},
-        completion_year = ${completionYearStr}
+        completion_year = ${completionYearStr},
+        site_measurement_at = ${siteMeasurementAtStr},
+        estimate_meeting_at = ${estimateMeetingAtStr}
       WHERE id = ${consultationId} AND company_id = ${company.id}
       RETURNING id
     `;
