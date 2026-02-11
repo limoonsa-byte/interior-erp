@@ -35,7 +35,7 @@ git push origin main
 1. [Vercel](https://vercel.com) 접속 → **GitHub으로 로그인**
 2. **Add New...** → **Project**
 3. 방금 올린 저장소(예: `interior-erp`) 선택 → **Import**
-4. **Environment Variables** 펼치기 → 아래 4개 추가:
+4. **Environment Variables** 펼치기 → 아래 5개 추가:
 
    | Name              | Value                    |
    |-------------------|--------------------------|
@@ -43,10 +43,22 @@ git push origin main
    | `GOOGLE_CLIENT_SECRET`| (.env.local과 동일)     |
    | `NEXTAUTH_SECRET`     | (.env.local과 동일)     |
    | `NEXTAUTH_URL`        | **비워두기** (배포 후 3단계에서 채움) |
+   | `MIGRATE_SECRET`      | (선택) 수동 마이그레이션 API용. 빌드 시 자동 마이그레이션 사용 시 생략 가능 |
 
 5. **Deploy** 클릭
 6. 1~2분 후 **Domain**에 나온 주소가 진짜 주소입니다.  
    예: `https://interior-erp-xxx.vercel.app`
+
+---
+
+## 2.5단계: DB 마이그레이션 (자동)
+
+**배포(빌드)할 때마다** `scripts/migrate.js` 가 자동 실행됩니다.  
+`consulted_at`, `scope` 컬럼과 `company_pics` 테이블이 없으면 추가하고, 있으면 건너뜁니다.  
+**별도로 SQL Editor나 curl 호출할 필요 없습니다.**
+
+(수동으로 돌리고 싶을 때만: `MIGRATE_SECRET` 환경변수 설정 후  
+`curl -X POST "https://배포주소/api/admin/migrate" -H "x-migrate-secret: 비밀값"` 사용)
 
 ---
 

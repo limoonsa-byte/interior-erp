@@ -33,29 +33,38 @@ export default function AdminPage() {
     const name = newName.trim();
     if (!name) return;
     setLoading(true);
+    setError(null);
     fetch("/api/company/pics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
           setNewName("");
+          setError(null);
           loadPics();
         } else {
-          alert((data as { error?: string }).error || "추가 실패");
+          const msg = (data as { error?: string }).error || "추가 실패";
+          setError(msg);
+          alert(msg);
         }
+        return null;
       })
-      .catch(() => alert("추가 중 오류가 발생했습니다."))
+      .catch(() => {
+        const msg = "추가 중 오류가 발생했습니다. (DB에 company_pics 테이블이 있나요?)";
+        setError(msg);
+        alert(msg);
+      })
       .finally(() => setLoading(false));
   };
 
   const handleDelete = (id: number) => {
     if (!confirm("이 담당자를 목록에서 삭제할까요?")) return;
     fetch(`/api/company/pics/${id}`, { method: "DELETE" })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
           loadPics();
         } else {
@@ -73,6 +82,9 @@ export default function AdminPage() {
         <h2 className="mb-4 text-base font-semibold text-gray-800">담당자 설정</h2>
         <p className="mb-4 text-sm text-gray-600">
           여기서 등록한 담당자는 상담 등록·수정 시 담당자 선택 목록에 표시됩니다.
+        </p>
+        <p className="mb-4 text-xs text-gray-500">
+          추가 후 목록에 안 보이면, Vercel/Neon에서 &quot;sql/add_company_pics.sql&quot; 실행 여부를 확인하세요.
         </p>
 
         <div className="mb-4 flex gap-2">
@@ -95,7 +107,9 @@ export default function AdminPage() {
         </div>
 
         {error && (
-          <p className="mb-3 text-sm text-amber-600">{error}</p>
+          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {error}
+          </div>
         )}
 
         {loading && pics.length === 0 ? (
