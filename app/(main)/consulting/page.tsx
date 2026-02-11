@@ -2,6 +2,15 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
+/** 오늘 날짜 00:00 기준 (datetime-local 형식). 오늘·이후만 선택 가능하게 min에 사용 */
+function getTodayDatetimeLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}T00:00`;
+}
+
 type Consultation = {
   id: number;
   customerName: string;
@@ -12,6 +21,7 @@ type Consultation = {
   status: string;
   pic: string;
   note?: string;
+  consultedAt?: string;
   date: string;
 };
 
@@ -90,6 +100,7 @@ function DetailModal({
       status: (fd.get("status") as string) ?? data.status,
       pic: (fd.get("pic") as string) ?? data.pic,
       note: (fd.get("note") as string) ?? "",
+      consultedAt: (fd.get("consultedAt") as string) || undefined,
     };
   };
 
@@ -168,37 +179,19 @@ function DetailModal({
           </div>
         </section>
 
-        {/* 상담이력 / 진행일시 */}
+        {/* 상담 일시 */}
         <section className="mb-5">
-          <p className="mb-2 text-sm font-semibold text-gray-700">상담이력</p>
-          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-12 text-gray-700">항목</span>
-              <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-                상담
-              </button>
-            </div>
-            <div
-              className="flex flex-1 items-center gap-3 cursor-pointer"
-              onClick={() => {
-                const el = document.getElementById(
-                  "consulting-datetime"
-                ) as HTMLInputElement | null;
-                if (el && typeof el.showPicker === "function") {
-                  el.showPicker();
-                } else {
-                  el?.focus();
-                }
-              }}
-            >
-              <span className="whitespace-nowrap text-gray-700">진행일시</span>
-              <input
-                id="consulting-datetime"
-                type="datetime-local"
-                className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="2025-09-15T16:00"
-              />
-            </div>
+          <p className="mb-2 text-sm font-semibold text-gray-700">상담 일시</p>
+          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4">
+            <span className="whitespace-nowrap text-gray-700">상담일시</span>
+            <input
+              id="consulting-datetime"
+              name="consultedAt"
+              type="datetime-local"
+              className="min-w-[200px] cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              defaultValue={data.consultedAt ? data.consultedAt.slice(0, 16) : getTodayDatetimeLocal()}
+              min={getTodayDatetimeLocal()}
+            />
           </div>
         </section>
 
@@ -485,6 +478,7 @@ export default function ConsultingPage() {
             status: String(item.status ?? ""),
             pic: String(item.pic ?? ""),
             note: item.note != null ? String(item.note) : undefined,
+            consultedAt: item.consultedAt != null ? String(item.consultedAt) : undefined,
             date: "",
           }))
         );

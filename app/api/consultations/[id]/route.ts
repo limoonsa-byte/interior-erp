@@ -42,6 +42,7 @@ export async function PATCH(
       status,
       pic,
       note,
+      consultedAt,
     } = body;
 
     const result = await sql`
@@ -54,7 +55,8 @@ export async function PATCH(
         pyung = COALESCE(${pyung ?? null}, pyung),
         status = COALESCE(${status ?? null}, status),
         pic = COALESCE(${pic ?? null}, pic),
-        note = COALESCE(${note ?? null}, note)
+        note = COALESCE(${note ?? null}, note),
+        consulted_at = COALESCE(${consultedAt ?? null}, consulted_at)
       WHERE id = ${consultationId} AND company_id = ${company.id}
       RETURNING id
     `;

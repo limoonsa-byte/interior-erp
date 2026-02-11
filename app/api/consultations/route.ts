@@ -34,6 +34,7 @@ export async function GET() {
       status: row.status,
       pic: row.pic,
       note: row.note,
+      consultedAt: row.consulted_at != null ? String(row.consulted_at) : undefined,
     }));
 
     return NextResponse.json(formatted);
@@ -61,11 +62,12 @@ export async function POST(request: Request) {
       status,
       pic,
       note,
+      consultedAt,
     } = body;
 
     await sql`
-      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note)
-      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note})
+      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at)
+      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null})
     `;
 
     return NextResponse.json({ message: "Success" }, { status: 200 });
