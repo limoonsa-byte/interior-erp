@@ -28,6 +28,7 @@ type Consultation = {
   consultedAt?: string;
   siteMeasurementAt?: string;
   estimateMeetingAt?: string;
+  materialMeetingAt?: string;
   scope?: string[];
   budget?: string;
   completionYear?: string;
@@ -49,6 +50,22 @@ function parseBudgetToSave(display: string): string {
 
 type PicItem = { id: number; name: string };
 
+/** 진행상태 옵션 (상담종료 제거) */
+const STATUS_OPTIONS = ["접수", "현장실측", "견적미팅", "견적완료", "자재미팅", "계약완료", "취소/보류", "완료"] as const;
+
+/** 견적완료 이상이면 접수/현장실측/견적미팅 선택 비활성화 */
+const STATUS_LOCKED_AFTER = ["견적완료", "자재미팅", "계약완료", "취소/보류", "완료"] as const;
+function isStatusLockedEarly(savedStatus: string): boolean {
+  return (STATUS_LOCKED_AFTER as readonly string[]).includes(savedStatus);
+}
+
+/** DB 저장값 → 화면 표시용 (구 라벨 호환) */
+function normalizeStatusDisplay(status: string | undefined): string {
+  if (!status) return "접수";
+  const map: Record<string, string> = { 상담종단: "상담종료", 계약: "계약완료", 취소: "취소/보류" };
+  return map[status] || status;
+}
+
 function DetailModal({
   data,
   editId,
@@ -67,7 +84,8 @@ function DetailModal({
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const siteMeasurementInputRef = useRef<HTMLInputElement | null>(null);
   const estimateMeetingInputRef = useRef<HTMLInputElement | null>(null);
-  const [statusSelection, setStatusSelection] = useState(data.status || "접수");
+  const materialMeetingInputRef = useRef<HTMLInputElement | null>(null);
+  const [statusSelection, setStatusSelection] = useState(normalizeStatusDisplay(data.status) || "접수");
   const defaultScopeItems = [
     "샤시제외", "전체시공", "도배", "바닥", "거실욕실", "안방욕실", "싱크대", "전기조명",
     "중문", "확장", "방수", "신발장", "붙박이장", "화장대", "문교체",
@@ -159,6 +177,7 @@ function DetailModal({
       consultedAt: (fd.get("consultedAt") as string) || undefined,
       siteMeasurementAt: (fd.get("siteMeasurementAt") as string)?.trim() || undefined,
       estimateMeetingAt: (fd.get("estimateMeetingAt") as string)?.trim() || undefined,
+      materialMeetingAt: (fd.get("materialMeetingAt") as string)?.trim() || undefined,
       scope,
       budget: budget || undefined,
       completionYear: (fd.get("completionYear") as string)?.trim() || undefined,
@@ -242,13 +261,14 @@ function DetailModal({
             진행상태
           </h3>
           <div className="flex flex-wrap gap-4 text-sm">
-            {["접수", "현장실측", "견적미팅", "견적완료", "상담종단", "계약", "취소", "완료"].map(
-              (label) => (
+            {STATUS_OPTIONS.map((label) => {
+              const disabled = ["접수", "현장실측", "견적미팅"].includes(label) && isStatusLockedEarly(normalizeStatusDisplay(data.status));
+              return (
                 <label
                   key={label}
                   htmlFor={`status-${label}`}
-                  className="flex cursor-pointer items-center gap-1"
-                  onClick={() => setStatusSelection(label)}
+                  className={`flex items-center gap-1 ${disabled ? "cursor-not-allowed text-gray-400" : "cursor-pointer"}`}
+                  onClick={() => !disabled && setStatusSelection(label)}
                 >
                   <input
                     id={`status-${label}`}
@@ -256,43 +276,44 @@ function DetailModal({
                     name="status"
                     value={label}
                     checked={statusSelection === label}
-                    onChange={() => setStatusSelection(label)}
+                    disabled={disabled}
+                    onChange={() => !disabled && setStatusSelection(label)}
                   />
                   {label}
                 </label>
-              )
-            )}
+              );
+            })}
           </div>
         </section>
 
-        {/* 현장실측날짜 (진행상태가 현장실측일 때만 표시) */}
-        {statusSelection === "현장실측" && (
+        {/* 자재미팅날짜 (자재미팅 선택 시 또는 저장된 자재미팅날짜가 있으면 표시, 위쪽) */}
+        {(statusSelection === "자재미팅" || data.materialMeetingAt) && (
           <section className="mb-5">
-            <p className="mb-2 text-sm font-semibold text-gray-700">현장실측날짜</p>
+            <p className="mb-2 text-sm font-semibold text-gray-700">자재미팅날짜</p>
             <div
               role="button"
               tabIndex={0}
               onClick={() => {
-                if (typeof siteMeasurementInputRef.current?.showPicker === "function") {
-                  siteMeasurementInputRef.current.showPicker();
+                if (typeof materialMeetingInputRef.current?.showPicker === "function") {
+                  materialMeetingInputRef.current.showPicker();
                 } else {
-                  siteMeasurementInputRef.current?.focus();
+                  materialMeetingInputRef.current?.focus();
                 }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  siteMeasurementInputRef.current?.focus();
+                  materialMeetingInputRef.current?.focus();
                 }
               }}
               className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4 cursor-pointer hover:bg-gray-100/80 transition-colors"
             >
-              <span className="whitespace-nowrap text-gray-700">현장실측날짜</span>
+              <span className="whitespace-nowrap text-gray-700">자재미팅날짜</span>
               <input
-                ref={siteMeasurementInputRef}
-                name="siteMeasurementAt"
+                ref={materialMeetingInputRef}
+                name="materialMeetingAt"
                 type="datetime-local"
                 className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-                defaultValue={data.siteMeasurementAt ? data.siteMeasurementAt.slice(0, 16) : getTodayDatetimeLocal()}
+                defaultValue={data.materialMeetingAt ? data.materialMeetingAt.slice(0, 16) : getTodayDatetimeLocal()}
                 min={getTodayDatetimeLocal()}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -300,8 +321,8 @@ function DetailModal({
           </section>
         )}
 
-        {/* 견적미팅날짜 (진행상태가 견적미팅일 때만 표시) */}
-        {statusSelection === "견적미팅" && (
+        {/* 견적미팅날짜 (견적미팅 선택 시 또는 저장된 견적미팅날짜가 있으면 표시) */}
+        {(statusSelection === "견적미팅" || data.estimateMeetingAt) && (
           <section className="mb-5">
             <p className="mb-2 text-sm font-semibold text-gray-700">견적미팅날짜</p>
             <div
@@ -328,6 +349,41 @@ function DetailModal({
                 type="datetime-local"
                 className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
                 defaultValue={data.estimateMeetingAt ? data.estimateMeetingAt.slice(0, 16) : getTodayDatetimeLocal()}
+                min={getTodayDatetimeLocal()}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* 현장실측날짜 (진행상태가 현장실측일 때 또는 저장된 현장실측날짜가 있으면 표시 유지) */}
+        {(statusSelection === "현장실측" || data.siteMeasurementAt) && (
+          <section className="mb-5">
+            <p className="mb-2 text-sm font-semibold text-gray-700">현장실측날짜</p>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (typeof siteMeasurementInputRef.current?.showPicker === "function") {
+                  siteMeasurementInputRef.current.showPicker();
+                } else {
+                  siteMeasurementInputRef.current?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  siteMeasurementInputRef.current?.focus();
+                }
+              }}
+              className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4 cursor-pointer hover:bg-gray-100/80 transition-colors"
+            >
+              <span className="whitespace-nowrap text-gray-700">현장실측날짜</span>
+              <input
+                ref={siteMeasurementInputRef}
+                name="siteMeasurementAt"
+                type="datetime-local"
+                className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                defaultValue={data.siteMeasurementAt ? data.siteMeasurementAt.slice(0, 16) : getTodayDatetimeLocal()}
                 min={getTodayDatetimeLocal()}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -687,6 +743,33 @@ function DetailModal({
   );
 }
 
+/** 진행상태에 맞는 진행날짜 값 선택 (목록 표시용) */
+function getProgressDateDisplay(item: Consultation): string {
+  const raw =
+    item.status === "자재미팅" && item.materialMeetingAt
+      ? item.materialMeetingAt
+      : item.status === "견적미팅" && item.estimateMeetingAt
+        ? item.estimateMeetingAt
+        : item.status === "현장실측" && item.siteMeasurementAt
+          ? item.siteMeasurementAt
+          : item.consultedAt || item.date || "";
+  if (!raw) return "-";
+  try {
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "-";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const ampm = h < 12 ? "AM" : "PM";
+    const hour = h % 12 || 12;
+    return `${y}.${m}.${day} ${ampm}${String(hour).padStart(2, "0")}:${min}`;
+  } catch {
+    return "-";
+  }
+}
+
 const emptyConsultation: Consultation = {
   id: 0,
   customerName: "",
@@ -699,22 +782,12 @@ const emptyConsultation: Consultation = {
   completionYear: undefined,
   siteMeasurementAt: undefined,
   estimateMeetingAt: undefined,
+  materialMeetingAt: undefined,
   date: "",
 };
 
 export default function ConsultingPage() {
-  const [consultations, setConsultations] = useState<Consultation[]>([
-    {
-      id: 1,
-      customerName: "디무디",
-      contact: "010-9787-9595",
-      address: "대구 남구 앞산순환로69길 19-1 202호",
-      pyung: 33,
-      status: "진행중",
-      pic: "김담당",
-      date: "2024-02-10",
-    },
-  ]);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [active, setActive] = useState<Consultation | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [picList, setPicList] = useState<PicItem[]>([]);
@@ -733,12 +806,13 @@ export default function ConsultingPage() {
             contact: String(item.contact ?? ""),
             address: String(item.address ?? ""),
             pyung: Number(item.pyung ?? 0),
-            status: String(item.status ?? ""),
+            status: normalizeStatusDisplay(String(item.status ?? "")),
             pic: String(item.pic ?? ""),
             note: item.note != null ? String(item.note) : undefined,
             consultedAt: item.consultedAt != null ? String(item.consultedAt) : undefined,
             siteMeasurementAt: item.siteMeasurementAt != null ? String(item.siteMeasurementAt) : undefined,
             estimateMeetingAt: item.estimateMeetingAt != null ? String(item.estimateMeetingAt) : undefined,
+            materialMeetingAt: item.materialMeetingAt != null ? String(item.materialMeetingAt) : undefined,
             scope: Array.isArray(item.scope) ? (item.scope as string[]) : undefined,
             budget: item.budget != null ? String(item.budget) : undefined,
             completionYear: item.completionYear != null ? String(item.completionYear) : undefined,
@@ -911,6 +985,8 @@ export default function ConsultingPage() {
                 />
               </th>
               <th className="w-16 p-3">No.</th>
+              <th className="p-3">진행상태</th>
+              <th className="p-3">진행날짜</th>
               <th className="p-3">고객명</th>
               <th className="p-3">연락처</th>
               <th className="w-1/3 p-3">주소</th>
@@ -929,6 +1005,8 @@ export default function ConsultingPage() {
                   />
                 </td>
                 <td className="p-3">{idx + 1}</td>
+                <td className="p-3">{item.status || "-"}</td>
+                <td className="p-3 whitespace-nowrap">{getProgressDateDisplay(item)}</td>
                 <td className="p-3 font-medium">
                   <button
                     type="button"

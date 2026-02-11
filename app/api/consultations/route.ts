@@ -48,6 +48,7 @@ export async function GET() {
         completionYear: row.completion_year != null ? String(row.completion_year) : undefined,
         siteMeasurementAt: row.site_measurement_at != null ? String(row.site_measurement_at) : undefined,
         estimateMeetingAt: row.estimate_meeting_at != null ? String(row.estimate_meeting_at) : undefined,
+        materialMeetingAt: row.material_meeting_at != null ? String(row.material_meeting_at) : undefined,
       };
     });
 
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
       completionYear,
       siteMeasurementAt,
       estimateMeetingAt,
+      materialMeetingAt,
     } = body;
 
     const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
@@ -88,10 +90,11 @@ export async function POST(request: Request) {
     const completionYearStr = completionYear != null ? String(completionYear) : null;
     const siteMeasurementAtStr = siteMeasurementAt != null ? String(siteMeasurementAt) : null;
     const estimateMeetingAtStr = estimateMeetingAt != null ? String(estimateMeetingAt) : null;
+    const materialMeetingAtStr = materialMeetingAt != null ? String(materialMeetingAt) : null;
 
     await sql`
-      INSERT INTO consultations (company_id, customer_name, contact, address, pyung, status, pic, note, consulted_at, scope, budget, completion_year, site_measurement_at, estimate_meeting_at)
-      VALUES (${company.id}, ${customerName}, ${contact}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson}, ${budgetStr}, ${completionYearStr}, ${siteMeasurementAtStr}, ${estimateMeetingAtStr})
+      INSERT INTO consultations (company_id, customer_name, contact, address, pyung, status, pic, note, consulted_at, scope, budget, completion_year, site_measurement_at, estimate_meeting_at, material_meeting_at)
+      VALUES (${company.id}, ${customerName}, ${contact}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson}, ${budgetStr}, ${completionYearStr}, ${siteMeasurementAtStr}, ${estimateMeetingAtStr}, ${materialMeetingAtStr})
     `;
 
     return NextResponse.json({ message: "Success" }, { status: 200 });

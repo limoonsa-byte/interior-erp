@@ -47,6 +47,7 @@ export async function PATCH(
       completionYear,
       siteMeasurementAt,
       estimateMeetingAt,
+      materialMeetingAt,
     } = body;
 
     const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
@@ -54,6 +55,7 @@ export async function PATCH(
     const completionYearStr = completionYear != null ? String(completionYear) : null;
     const siteMeasurementAtStr = siteMeasurementAt != null ? String(siteMeasurementAt) : null;
     const estimateMeetingAtStr = estimateMeetingAt != null ? String(estimateMeetingAt) : null;
+    const materialMeetingAtStr = materialMeetingAt != null ? String(materialMeetingAt) : null;
 
     const result = await sql`
       UPDATE consultations
@@ -70,7 +72,8 @@ export async function PATCH(
         budget = ${budgetStr},
         completion_year = ${completionYearStr},
         site_measurement_at = ${siteMeasurementAtStr},
-        estimate_meeting_at = ${estimateMeetingAtStr}
+        estimate_meeting_at = ${estimateMeetingAtStr},
+        material_meeting_at = ${materialMeetingAtStr}
       WHERE id = ${consultationId} AND company_id = ${company.id}
       RETURNING id
     `;
