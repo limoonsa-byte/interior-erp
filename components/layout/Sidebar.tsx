@@ -22,8 +22,8 @@ import { useSidebar } from "./SidebarContext";
 
 const menuItems = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
-  { href: "/consulting", label: "상담", icon: MessageSquare },
-  { href: "/estimate", label: "견적", icon: FileText },
+  { href: "/consulting", label: "상담 및 미팅관리", icon: MessageSquare },
+  { href: "/estimate", label: "견적서 작성", icon: FileText },
   { href: "/projects", label: "프로젝트", icon: FolderKanban },
   { href: "/settlement", label: "정산", icon: Wallet },
   { href: "/schedule", label: "일정", icon: Calendar },

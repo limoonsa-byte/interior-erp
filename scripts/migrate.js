@@ -38,6 +38,22 @@ async function migrate() {
     console.log("[migrate] material_meeting_at OK");
     await sql`ALTER TABLE consultations DROP COLUMN IF EXISTS region`;
     console.log("[migrate] region 컬럼 제거 OK");
+    await sql`
+      CREATE TABLE IF NOT EXISTS estimates (
+        id SERIAL PRIMARY KEY,
+        company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+        consultation_id INT REFERENCES consultations(id) ON DELETE SET NULL,
+        customer_name TEXT,
+        contact TEXT,
+        address TEXT,
+        title TEXT,
+        estimate_date DATE,
+        note TEXT,
+        items TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    console.log("[migrate] estimates OK");
     console.log("[migrate] 완료");
   } catch (err) {
     console.error("[migrate] 실패:", err.message);

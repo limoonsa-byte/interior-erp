@@ -215,7 +215,8 @@ function DetailModal({
       return;
     }
 
-    window.location.href = "/estimate";
+    const q = data.id > 0 ? `?consultationId=${data.id}` : "";
+    window.location.href = `/estimate${q}`;
   };
 
   useEffect(() => {
