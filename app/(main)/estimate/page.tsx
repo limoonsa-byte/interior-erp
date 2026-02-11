@@ -153,7 +153,7 @@ function EstimateForm({
   onCancel,
 }: {
   estimate: Estimate | null;
-  consultationPreFill: { customerName: string; contact: string; address: string } | null;
+  consultationPreFill: { customerName: string; contact: string; address: string; consultationId: number } | null;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -261,7 +261,7 @@ function EstimateForm({
     setSaving(true);
     try {
       const payload = {
-        consultationId: estimate?.consultationId ?? (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("consultationId") : null),
+        consultationId: estimate?.consultationId ?? consultationPreFill?.consultationId ?? (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("consultationId") : null),
         customerName: customerName.trim(),
         contact: contact.trim(),
         address: address.trim(),
@@ -529,10 +529,21 @@ function EstimateForm({
   );
 }
 
+type Consultation = {
+  id: number;
+  customerName?: string;
+  contact?: string;
+  address?: string;
+  estimateMeetingAt?: string;
+};
+
 export default function EstimatePage() {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [formOpen, setFormOpen] = useState<"new" | number | null>(null);
-  const [consultationPreFill, setConsultationPreFill] = useState<{ customerName: string; contact: string; address: string } | null>(null);
+  const [consultationPreFill, setConsultationPreFill] = useState<{ customerName: string; contact: string; address: string; consultationId: number } | null>(null);
+  const [consultationModalOpen, setConsultationModalOpen] = useState(false);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [loadingConsultations, setLoadingConsultations] = useState(false);
 
   const load = () => {
     fetch("/api/estimates")
@@ -556,11 +567,46 @@ export default function EstimatePage() {
         .then((res) => res.json())
         .then((list) => {
           const c = Array.isArray(list) ? list.find((x: { id: number }) => String(x.id) === cId) : null;
-          if (c) setConsultationPreFill({ customerName: c.customerName ?? "", contact: c.contact ?? "", address: c.address ?? "" });
+          if (c) {
+            setConsultationPreFill({ 
+              customerName: c.customerName ?? "", 
+              contact: c.contact ?? "", 
+              address: c.address ?? "",
+              consultationId: c.id
+            });
+            setFormOpen("new");
+          }
         })
         .catch(() => {});
     }
   }, []);
+
+  const handleNewEstimateClick = () => {
+    setLoadingConsultations(true);
+    setConsultationModalOpen(true);
+    fetch("/api/consultations")
+      .then((res) => res.json())
+      .then((list) => {
+        if (Array.isArray(list)) {
+          // 견적미팅이 체크된 항목만 필터링
+          const filtered = list.filter((c: Consultation) => c.estimateMeetingAt);
+          setConsultations(filtered);
+        }
+      })
+      .catch(() => setConsultations([]))
+      .finally(() => setLoadingConsultations(false));
+  };
+
+  const handleSelectConsultation = (c: Consultation) => {
+    setConsultationPreFill({
+      customerName: c.customerName ?? "",
+      contact: c.contact ?? "",
+      address: c.address ?? "",
+      consultationId: c.id,
+    });
+    setConsultationModalOpen(false);
+    setFormOpen("new");
+  };
 
   const editingEstimate = formOpen !== null && formOpen !== "new" ? estimates.find((e) => e.id === formOpen) ?? null : null;
   const showForm = formOpen !== null;
@@ -571,12 +617,73 @@ export default function EstimatePage() {
         <h1 className="text-xl font-bold text-gray-900">견적서 작성</h1>
         <button
           type="button"
-          onClick={() => setFormOpen("new")}
+          onClick={handleNewEstimateClick}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
         >
           신규 견적
         </button>
       </div>
+
+      {/* 상담 선택 모달 */}
+      {consultationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">상담 선택 (견적미팅 예정)</h3>
+              <button 
+                type="button" 
+                onClick={() => setConsultationModalOpen(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              {loadingConsultations ? (
+                <p className="text-center text-sm text-gray-500 py-8">불러오는 중...</p>
+              ) : consultations.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-2">견적미팅이 예정된 상담이 없습니다.</p>
+                  <p className="text-xs text-gray-400">상담 및 미팅관리에서 견적미팅 일시를 먼저 입력해 주세요.</p>
+                </div>
+              ) : (
+                <div className="overflow-auto max-h-[60vh]">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        <th className="p-2">고객명</th>
+                        <th className="p-2">연락처</th>
+                        <th className="p-2">주소</th>
+                        <th className="p-2">견적미팅</th>
+                        <th className="w-20 p-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {consultations.map((c) => (
+                        <tr key={c.id} className="border-t border-gray-100 hover:bg-gray-50">
+                          <td className="p-2 font-medium">{c.customerName || "-"}</td>
+                          <td className="p-2">{c.contact || "-"}</td>
+                          <td className="p-2 text-gray-600 truncate max-w-[200px]" title={c.address}>{c.address || "-"}</td>
+                          <td className="p-2 text-gray-600">{c.estimateMeetingAt || "-"}</td>
+                          <td className="p-2">
+                            <button 
+                              type="button" 
+                              onClick={() => handleSelectConsultation(c)} 
+                              className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                            >
+                              선택
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm ? (
         <EstimateForm
