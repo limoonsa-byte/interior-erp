@@ -31,15 +31,19 @@ type Consultation = {
   date: string;
 };
 
+type PicItem = { id: number; name: string };
+
 function DetailModal({
   data,
   editId,
+  picList,
   onClose,
   onSaved,
 }: {
   data: Consultation;
-  /** 수정 시 상담 id, 신규일 땐 null */
   editId: number | null;
+  /** 관리에서 설정한 담당자 목록 */
+  picList: PicItem[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -492,8 +496,14 @@ function DetailModal({
                 defaultValue={data.pic}
               >
                 <option value="">선택</option>
-                <option value="김담당">김담당</option>
-                <option value="[가맹점교육용] 가맹점교육용">[가맹점교육용] 가맹점교육용</option>
+                {picList.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+                {data.pic && !picList.some((p) => p.name === data.pic) && (
+                  <option value={data.pic}>{data.pic}</option>
+                )}
               </select>
             </div>
           </div>
@@ -560,8 +570,8 @@ export default function ConsultingPage() {
     },
   ]);
   const [active, setActive] = useState<Consultation | null>(null);
-  /** 수정 시 해당 상담 id, 신규등록 시 null */
   const [editId, setEditId] = useState<number | null>(null);
+  const [picList, setPicList] = useState<PicItem[]>([]);
 
   const loadFromDb = () => {
     fetch("/api/consultations")
@@ -581,6 +591,7 @@ export default function ConsultingPage() {
             pic: String(item.pic ?? ""),
             note: item.note != null ? String(item.note) : undefined,
             consultedAt: item.consultedAt != null ? String(item.consultedAt) : undefined,
+            scope: Array.isArray(item.scope) ? (item.scope as string[]) : undefined,
             date: "",
           }))
         );
@@ -592,6 +603,15 @@ export default function ConsultingPage() {
 
   useEffect(() => {
     loadFromDb();
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/company/pics")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setPicList(data);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -780,6 +800,7 @@ export default function ConsultingPage() {
           key={editId === null ? "new" : `edit-${editId}`}
           data={active}
           editId={editId}
+          picList={picList}
           onClose={() => {
             setActive(null);
             setEditId(null);
