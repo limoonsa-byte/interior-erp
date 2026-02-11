@@ -53,9 +53,7 @@ function DetailModal({
           buildingName?: string;
         }) => {
           setPostcode(result.zonecode);
-          const road =
-            result.roadAddress ||
-            `${data.region} ${data.address.replace(postcode, "").trim()}`;
+          const road = result.roadAddress || "";
           setRoadAddress(
             result.buildingName ? `${road} ${result.buildingName}` : road
           );
@@ -86,7 +84,7 @@ function DetailModal({
     return {
       customerName: (fd.get("customerName") as string) ?? data.customerName,
       contact: (fd.get("contact") as string) ?? data.contact,
-      region: (fd.get("region") as string) ?? data.region,
+      region: data.region ?? "", // 폼에서는 제거, 주소가 메인. 기존 값 유지용
       address,
       pyung: Number(fd.get("pyung")) || data.pyung,
       status: (fd.get("status") as string) ?? data.status,
@@ -217,21 +215,6 @@ function DetailModal({
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 defaultValue={data.customerName}
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                지역
-              </label>
-              <select
-                name="region"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue={data.region}
-              >
-                <option value="서울특별시">서울특별시</option>
-                <option value="경기도">경기도</option>
-                <option value="대구광역시">대구광역시</option>
-                <option value="부산광역시">부산광역시</option>
-              </select>
             </div>
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
@@ -531,15 +514,6 @@ export default function ConsultingPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-sm font-bold text-gray-600">지역</label>
-            <select className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm">
-              <option>전체</option>
-              <option>서울</option>
-              <option>경기</option>
-              <option>대구</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
             <label className="w-16 text-sm font-bold text-gray-600">
               진행상태
             </label>
@@ -626,7 +600,6 @@ export default function ConsultingPage() {
               <th className="w-16 p-3">No.</th>
               <th className="p-3">고객명</th>
               <th className="p-3">연락처</th>
-              <th className="p-3">지역</th>
               <th className="w-1/3 p-3">주소</th>
               <th className="p-3">평수</th>
             </tr>
@@ -651,7 +624,6 @@ export default function ConsultingPage() {
                   </button>
                 </td>
                 <td className="p-3">{item.contact}</td>
-                <td className="p-3">{item.region}</td>
                 <td className="p-3 truncate text-left">{item.address}</td>
                 <td className="p-3">{item.pyung}</td>
               </tr>
