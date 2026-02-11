@@ -19,6 +19,13 @@ async function migrate() {
       )
     `;
     console.log("[migrate] company_pics OK");
+    await sql`
+      CREATE TABLE IF NOT EXISTS company_admin_pin (
+        company_id INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+        pin TEXT NOT NULL
+      )
+    `;
+    console.log("[migrate] company_admin_pin OK");
     console.log("[migrate] 완료");
   } catch (err) {
     console.error("[migrate] 실패:", err.message);

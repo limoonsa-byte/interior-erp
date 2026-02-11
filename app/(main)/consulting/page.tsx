@@ -173,10 +173,30 @@ function DetailModal({
     window.location.href = "/estimate";
   };
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
       <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-        <form ref={formRef}>
+        <form
+          ref={formRef}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAction("save");
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+            e.preventDefault();
+            handleAction("save");
+          }}
+        >
           {/* 상단 제목/닫기 */}
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">상담 상세</h2>
@@ -512,9 +532,6 @@ function DetailModal({
                     {p.name}
                   </option>
                 ))}
-                {data.pic && !picList.some((p) => p.name === data.pic) && (
-                  <option value={data.pic}>{data.pic}</option>
-                )}
               </select>
             </div>
           </div>
@@ -535,14 +552,20 @@ function DetailModal({
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              닫기
+            </button>
+            <button
+              type="button"
               onClick={() => handleAction("estimate")}
               className="rounded-lg border border-gray-400 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50"
             >
               견적작성
             </button>
             <button
-              type="button"
-              onClick={() => handleAction("save")}
+              type="submit"
               className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
               저장
