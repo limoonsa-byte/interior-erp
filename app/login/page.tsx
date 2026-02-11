@@ -260,7 +260,14 @@ export default function LoginPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+          >
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-600">
                 회사코드
@@ -290,14 +297,15 @@ export default function LoginPage() {
               />
             </div>
             <button
-              type="button"
-              onClick={handleLogin}
+              type="submit"
               disabled={loading}
               className="mt-2 w-full rounded-lg bg-slate-800 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
             >
               {loading ? "로그인 중..." : "로그인"}
             </button>
+          </form>
 
+          <div className="space-y-4">
             {!findMode && (
               <p className="mt-4 text-center text-xs text-gray-500">
                 <button
@@ -402,6 +410,7 @@ export default function LoginPage() {
               </div>
             )}
           </div>
+          </>
         )}
       </div>
     </div>

@@ -745,6 +745,8 @@ function DetailModal({
 
 /** 진행상태에 맞는 진행날짜 값 선택 (목록 표시용) */
 function getProgressDateDisplay(item: Consultation): string {
+  // 계약완료, 취소/보류, 완료는 진행날짜 표기 없음
+  if (["계약완료", "취소/보류", "완료"].includes(item.status)) return "-";
   const raw =
     item.status === "자재미팅" && item.materialMeetingAt
       ? item.materialMeetingAt
