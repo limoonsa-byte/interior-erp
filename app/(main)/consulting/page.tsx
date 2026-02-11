@@ -63,12 +63,19 @@ function DetailModal({
   const [postcode, setPostcode] = useState(
     data.address ? data.address.slice(0, 5).replace(/\D/g, "") || "42496" : "42496"
   );
-  const [roadAddress, setRoadAddress] = useState(
-    data.address?.replace(/^\d+\s*/, "").trim() || "대구 남구 앞산순환로69길 19-1"
-  );
-  const [detailAddress, setDetailAddress] = useState(
-    data.address?.includes("호") ? data.address.split(" ").pop() || "202호" : "202호"
-  );
+  const [roadAddress, setRoadAddress] = useState(() => {
+    const rest = data.address?.replace(/^\d+\s*/, "").trim() || "대구 남구 앞산순환로69길 19-1";
+    const parts = rest.split(/\s+/);
+    const last = parts.pop() ?? "";
+    return last ? parts.join(" ") || rest : rest;
+  });
+  const [detailAddress, setDetailAddress] = useState(() => {
+    const rest = data.address?.replace(/^\d+\s*/, "").trim();
+    if (!rest) return "202호";
+    const parts = rest.split(/\s+/);
+    const last = parts.pop() ?? "";
+    return last || "202호";
+  });
 
   const handleSearchAddress = () => {
     if (typeof window === "undefined") return;
@@ -112,7 +119,11 @@ function DetailModal({
   const buildPayload = () => {
     if (!formRef.current) return null;
     const fd = new FormData(formRef.current);
-    const address = `${postcode} ${roadAddress} ${detailAddress}`.trim();
+    const road = roadAddress.trim();
+    const detail = detailAddress.trim();
+    // 상세주소가 이미 도로명 주소 끝에 있으면 중복으로 붙이지 않음
+    const fullRoad = detail && road.endsWith(detail) ? road : [road, detail].filter(Boolean).join(" ");
+    const address = `${postcode} ${fullRoad}`.trim();
     const scope = scopeItems.filter((label) => fd.get(`scope_${label}`) === "on");
     return {
       customerName: (fd.get("customerName") as string) ?? data.customerName,

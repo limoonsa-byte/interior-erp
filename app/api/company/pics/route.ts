@@ -27,9 +27,9 @@ export async function GET() {
       ORDER BY id ASC
     `;
 
-    const list = result.rows.map((row: { id: number; name: string }) => ({
-      id: row.id,
-      name: row.name,
+    const list = result.rows.map((row) => ({
+      id: Number((row as { id: number }).id),
+      name: String((row as { name: string }).name),
     }));
 
     return NextResponse.json(list);
