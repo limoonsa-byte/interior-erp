@@ -38,6 +38,7 @@ function DetailModal({
   onSaved: () => void;
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [postcode, setPostcode] = useState(
     data.address ? data.address.slice(0, 5).replace(/\D/g, "") || "42496" : "42496"
   );
@@ -179,25 +180,47 @@ function DetailModal({
           </div>
         </section>
 
-        {/* 상담 일시 */}
+        {/* 상담 예약날짜 */}
         <section className="mb-5">
-          <p className="mb-2 text-sm font-semibold text-gray-700">상담 일시</p>
-          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4">
-            <span className="whitespace-nowrap text-gray-700">상담일시</span>
+          <p className="mb-2 text-sm font-semibold text-gray-700">상담 예약날짜</p>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (typeof dateInputRef.current?.showPicker === "function") {
+                dateInputRef.current.showPicker();
+              } else {
+                dateInputRef.current?.focus();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                if (typeof dateInputRef.current?.showPicker === "function") {
+                  dateInputRef.current.showPicker();
+                } else {
+                  dateInputRef.current?.focus();
+                }
+              }
+            }}
+            className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm md:flex-row md:items-center md:gap-4 cursor-pointer hover:bg-gray-100/80 transition-colors"
+          >
+            <span className="whitespace-nowrap text-gray-700">상담 예약날짜</span>
             <input
+              ref={dateInputRef}
               id="consulting-datetime"
               name="consultedAt"
               type="datetime-local"
-              className="min-w-[200px] cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="flex-1 min-w-0 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
               defaultValue={data.consultedAt ? data.consultedAt.slice(0, 16) : getTodayDatetimeLocal()}
               min={getTodayDatetimeLocal()}
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </section>
 
-        {/* 기본 정보 1열 */}
-        <section className="mb-5 grid gap-4 md:grid-cols-2">
-          <div className="space-y-4">
+        {/* 기본 정보 */}
+        <section className="mb-5 space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
                 고객이름
@@ -211,19 +234,6 @@ function DetailModal({
             </div>
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
-                아파트명
-              </label>
-              <input
-                type="text"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                defaultValue="L앞산아파트"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
                 연락처
               </label>
               <input
@@ -233,38 +243,44 @@ function DetailModal({
                 defaultValue={data.contact}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                주소
-              </label>
-              <div className="mb-2 flex gap-2">
-                <input
-                  type="text"
-                  className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={handleSearchAddress}
-                  className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white"
-                >
-                  검색
-                </button>
-              </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              주소
+            </label>
+            <div className="mb-2 flex gap-2">
               <input
                 type="text"
-                className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                value={roadAddress}
-                onChange={(e) => setRoadAddress(e.target.value)}
+                className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
               />
-              <input
-                type="text"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                value={detailAddress}
-                onChange={(e) => setDetailAddress(e.target.value)}
-              />
+              <button
+                type="button"
+                onClick={handleSearchAddress}
+                className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-white"
+              >
+                검색
+              </button>
             </div>
+            <input
+              type="text"
+              className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              value={roadAddress}
+              onChange={(e) => setRoadAddress(e.target.value)}
+              placeholder="도로명 주소"
+            />
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              아파트명, 상세주소
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              value={detailAddress}
+              onChange={(e) => setDetailAddress(e.target.value)}
+              placeholder="예: L앞산아파트 202호"
+            />
           </div>
         </section>
 
