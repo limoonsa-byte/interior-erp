@@ -195,14 +195,11 @@ function EstimateForm({
   }, []);
 
   const addRow = () => setItems((prev) => [...prev, { ...emptyItem }]);
-  const openSmartFieldModal = () => {
-    setSmartFieldModalOpen(true);
-    setSmartFieldList(null);
-  };
+  
   const loadSmartFieldList = () => {
     const url = smartFieldListUrl.trim();
     if (!url) {
-      alert("도면 목록 API URL을 입력해 주세요.");
+      alert("도면 목록 API URL을 입력해 주세요. 관리 페이지에서 설정할 수 있습니다.");
       return;
     }
     setSmartFieldLoading(true);
@@ -222,6 +219,15 @@ function EstimateForm({
         setSmartFieldList([]);
       })
       .finally(() => setSmartFieldLoading(false));
+  };
+
+  const openSmartFieldModal = () => {
+    setSmartFieldModalOpen(true);
+    setSmartFieldList(null);
+    // URL이 있으면 자동으로 목록 불러오기
+    if (smartFieldListUrl.trim()) {
+      loadSmartFieldList();
+    }
   };
   const selectDrawing = (row: DrawingListRow) => {
     const data = row.data ?? row.데이터;
@@ -384,22 +390,18 @@ function EstimateForm({
               <h3 className="text-sm font-semibold text-gray-800">도면 보관함에서 불러오기</h3>
               <button type="button" onClick={() => setSmartFieldModalOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
-            <div className="p-4 space-y-3">
-              <p className="text-xs text-gray-600">도면 목록 API URL을 입력한 뒤 목록 불러오기를 누르세요. (스마트 현장관리 쪽에서 API 제공 시 사용)</p>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="https://script.google.com/.../exec"
-                  value={smartFieldListUrl}
-                  onChange={(e) => setSmartFieldListUrl(e.target.value)}
-                />
-                <button type="button" onClick={loadSmartFieldList} disabled={smartFieldLoading} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
-                  {smartFieldLoading ? "불러오는 중..." : "목록 불러오기"}
-                </button>
-              </div>
-              {smartFieldList && (
-                <div className="overflow-auto max-h-64 rounded-lg border border-gray-200">
+            <div className="p-4">
+              {smartFieldLoading ? (
+                <p className="text-center text-sm text-gray-500 py-8">목록을 불러오는 중...</p>
+              ) : !smartFieldList ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-3">도면 API URL이 설정되지 않았습니다.</p>
+                  <p className="text-xs text-gray-400">관리 페이지에서 도면 보관함 API URL을 먼저 설정해 주세요.</p>
+                </div>
+              ) : smartFieldList.length === 0 ? (
+                <p className="text-center text-sm text-gray-500 py-8">저장된 도면이 없습니다.</p>
+              ) : (
+                <div className="overflow-auto max-h-[60vh] rounded-lg border border-gray-200">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-gray-100 sticky top-0">
                       <tr>
