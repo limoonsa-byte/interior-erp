@@ -24,18 +24,29 @@ export async function GET() {
     const result =
       await sql`SELECT * FROM consultations WHERE company_id = ${company.id} ORDER BY id DESC`;
 
-    const formatted = result.rows.map((row) => ({
-      id: row.id,
-      customerName: row.customer_name,
-      contact: row.contact,
-      region: row.region,
-      address: row.address,
-      pyung: row.pyung,
-      status: row.status,
-      pic: row.pic,
-      note: row.note,
-      consultedAt: row.consulted_at != null ? String(row.consulted_at) : undefined,
-    }));
+    const formatted = result.rows.map((row) => {
+      let scope: string[] | undefined;
+      if (row.scope != null && String(row.scope).trim() !== "") {
+        try {
+          scope = JSON.parse(String(row.scope)) as string[];
+        } catch {
+          scope = undefined;
+        }
+      }
+      return {
+        id: row.id,
+        customerName: row.customer_name,
+        contact: row.contact,
+        region: row.region,
+        address: row.address,
+        pyung: row.pyung,
+        status: row.status,
+        pic: row.pic,
+        note: row.note,
+        consultedAt: row.consulted_at != null ? String(row.consulted_at) : undefined,
+        scope,
+      };
+    });
 
     return NextResponse.json(formatted);
   } catch (error) {
@@ -63,19 +74,22 @@ export async function POST(request: Request) {
       pic,
       note,
       consultedAt,
+      scope,
     } = body;
 
+    const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
+
     await sql`
-      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at)
-      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null})
+      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at, scope)
+      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson})
     `;
 
     return NextResponse.json({ message: "Success" }, { status: 200 });
   } catch (error) {
     console.error("DB Error:", error);
     const message =
-      error instanceof Error && /consulted_at|column/i.test(error.message)
-        ? "DB에 consulted_at 컬럼이 없습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql 을 실행해 주세요."
+      error instanceof Error && /consulted_at|scope|column/i.test(error.message)
+        ? "DB에 consulted_at 또는 scope 컬럼이 없을 수 있습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql, sql/add_scope.sql 을 실행해 주세요."
         : "Server Error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

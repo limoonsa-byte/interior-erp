@@ -63,10 +63,13 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("company login error:", error);
-    return NextResponse.json(
-      { error: "서버 오류가 발생했습니다." },
-      { status: 500 }
-    );
+    const isDbMissing =
+      (error instanceof Error && /missing_connection_string|connectionString/i.test(error.message)) ||
+      (error && typeof (error as { code?: string }).code === "string" && (error as { code: string }).code === "missing_connection_string");
+    const msg = isDbMissing
+      ? "로컬/Cursor 미리보기: .env.local에 POSTGRES_URL을 넣고 터미널에서 npm run dev 를 다시 실행해 주세요. (Vercel → Storage → Neon에서 연결 주소 복사)"
+      : "서버 오류가 발생했습니다.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

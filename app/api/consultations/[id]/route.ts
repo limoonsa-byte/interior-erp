@@ -43,23 +43,49 @@ export async function PATCH(
       pic,
       note,
       consultedAt,
+      scope,
     } = body;
 
-    const result = await sql`
-      UPDATE consultations
-      SET
-        customer_name = COALESCE(${customerName ?? null}, customer_name),
-        contact = COALESCE(${contact ?? null}, contact),
-        region = COALESCE(${region ?? null}, region),
-        address = COALESCE(${address ?? null}, address),
-        pyung = COALESCE(${pyung ?? null}, pyung),
-        status = COALESCE(${status ?? null}, status),
-        pic = COALESCE(${pic ?? null}, pic),
-        note = COALESCE(${note ?? null}, note),
-        consulted_at = COALESCE(${consultedAt ?? null}, consulted_at)
-      WHERE id = ${consultationId} AND company_id = ${company.id}
-      RETURNING id
-    `;
+    const scopeJson =
+      scope !== undefined
+        ? Array.isArray(scope)
+          ? JSON.stringify(scope)
+          : null
+        : undefined;
+
+    const result =
+      scopeJson !== undefined
+        ? await sql`
+            UPDATE consultations
+            SET
+              customer_name = COALESCE(${customerName ?? null}, customer_name),
+              contact = COALESCE(${contact ?? null}, contact),
+              region = COALESCE(${region ?? null}, region),
+              address = COALESCE(${address ?? null}, address),
+              pyung = COALESCE(${pyung ?? null}, pyung),
+              status = COALESCE(${status ?? null}, status),
+              pic = COALESCE(${pic ?? null}, pic),
+              note = COALESCE(${note ?? null}, note),
+              consulted_at = COALESCE(${consultedAt ?? null}, consulted_at),
+              scope = ${scopeJson}
+            WHERE id = ${consultationId} AND company_id = ${company.id}
+            RETURNING id
+          `
+        : await sql`
+            UPDATE consultations
+            SET
+              customer_name = COALESCE(${customerName ?? null}, customer_name),
+              contact = COALESCE(${contact ?? null}, contact),
+              region = COALESCE(${region ?? null}, region),
+              address = COALESCE(${address ?? null}, address),
+              pyung = COALESCE(${pyung ?? null}, pyung),
+              status = COALESCE(${status ?? null}, status),
+              pic = COALESCE(${pic ?? null}, pic),
+              note = COALESCE(${note ?? null}, note),
+              consulted_at = COALESCE(${consultedAt ?? null}, consulted_at)
+            WHERE id = ${consultationId} AND company_id = ${company.id}
+            RETURNING id
+          `;
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -73,7 +99,7 @@ export async function PATCH(
     console.error("consultations PATCH error:", error);
     const message =
       error instanceof Error && /consulted_at|column/i.test(error.message)
-        ? "DB에 consulted_at 컬럼이 없습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql 을 실행해 주세요."
+        ? "DB에 consulted_at 또는 scope 컬럼이 없을 수 있습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql, sql/add_scope.sql 을 실행해 주세요."
         : "Server Error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -27,6 +27,7 @@ type Consultation = {
   pic: string;
   note?: string;
   consultedAt?: string;
+  scope?: string[];
   date: string;
 };
 
@@ -44,6 +45,17 @@ function DetailModal({
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const defaultScopeItems = [
+    "샤시제외", "전체시공", "도배", "바닥", "거실욕실", "안방욕실", "싱크대", "전기조명",
+    "중문", "확장", "방수", "신발장", "붙박이장", "화장대", "문교체",
+  ];
+  const [scopeItems, setScopeItems] = useState<string[]>(() =>
+    data.scope?.length
+      ? [...new Set([...defaultScopeItems, ...data.scope])]
+      : defaultScopeItems
+  );
+  const [scopeEditOpen, setScopeEditOpen] = useState(false);
+  const [scopeNewItem, setScopeNewItem] = useState("");
   const [postcode, setPostcode] = useState(
     data.address ? data.address.slice(0, 5).replace(/\D/g, "") || "42496" : "42496"
   );
@@ -97,16 +109,18 @@ function DetailModal({
     if (!formRef.current) return null;
     const fd = new FormData(formRef.current);
     const address = `${postcode} ${roadAddress} ${detailAddress}`.trim();
+    const scope = scopeItems.filter((label) => fd.get(`scope_${label}`) === "on");
     return {
       customerName: (fd.get("customerName") as string) ?? data.customerName,
       contact: (fd.get("contact") as string) ?? data.contact,
-      region: data.region ?? "", // 폼에서는 제거, 주소가 메인. 기존 값 유지용
+      region: data.region ?? "",
       address,
       pyung: Number(fd.get("pyung")) || data.pyung,
       status: (fd.get("status") as string) ?? data.status,
       pic: (fd.get("pic") as string) ?? data.pic,
       note: (fd.get("note") as string) ?? "",
       consultedAt: (fd.get("consultedAt") as string) || undefined,
+      scope,
     };
   };
 
@@ -350,41 +364,109 @@ function DetailModal({
         {/* 시공범위 / 예산 / 담당자 / 요청사항 */}
         <section className="mb-5 space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">
-              시공범위
-            </label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-semibold text-gray-700">
+                시공범위
+              </label>
+              <button
+                type="button"
+                onClick={() => setScopeEditOpen(true)}
+                className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+              >
+                수정/추가
+              </button>
+            </div>
             <div className="flex flex-wrap gap-3 text-sm">
-              {[
-                "샤시제외",
-                "전체시공",
-                "도배",
-                "바닥",
-                "거실욕실",
-                "안방욕실",
-                "싱크대",
-                "전기조명",
-                "중문",
-                "확장",
-                "방수",
-                "신발장",
-                "붙박이장",
-                "화장대",
-                "탑샷",
-                "문교체",
-              ].map((label, idx) => (
+              {scopeItems.map((label, idx) => (
                 <label
-                  key={label}
+                  key={`${label}-${idx}`}
                   className="flex cursor-pointer items-center gap-1"
                 >
                   <input
                     type="checkbox"
-                    defaultChecked={idx < 2 || label === "중문" || label === "확장"}
+                    name={`scope_${label}`}
+                    defaultChecked={
+                      data.scope
+                        ? data.scope.includes(label)
+                        : idx < 2 || label === "중문" || label === "확장"
+                    }
                   />
                   {label}
                 </label>
               ))}
             </div>
           </div>
+
+          {scopeEditOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+                <h3 className="mb-4 text-base font-semibold text-gray-900">
+                  시공범위 수정/추가
+                </h3>
+                <div className="mb-4 flex gap-2">
+                  <input
+                    type="text"
+                    value={scopeNewItem}
+                    onChange={(e) => setScopeNewItem(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (scopeNewItem.trim()) {
+                          setScopeItems([...scopeItems, scopeNewItem.trim()]);
+                          setScopeNewItem("");
+                        }
+                      }
+                    }}
+                    placeholder="새 항목 입력 후 추가"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (scopeNewItem.trim()) {
+                        setScopeItems([...scopeItems, scopeNewItem.trim()]);
+                        setScopeNewItem("");
+                      }
+                    }}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    추가
+                  </button>
+                </div>
+                <ul className="mb-4 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 text-sm">
+                  {scopeItems.map((item, idx) => (
+                    <li
+                      key={`${item}-${idx}`}
+                      className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-gray-100"
+                    >
+                      <span>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setScopeItems(scopeItems.filter((_, i) => i !== idx))
+                        }
+                        className="rounded px-2 py-0.5 text-red-600 hover:bg-red-50"
+                      >
+                        삭제
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScopeEditOpen(false);
+                      setScopeNewItem("");
+                    }}
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
