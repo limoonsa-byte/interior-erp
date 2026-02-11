@@ -28,8 +28,23 @@ type Consultation = {
   note?: string;
   consultedAt?: string;
   scope?: string[];
+  budget?: string;
+  completionYear?: string;
   date: string;
 };
+
+/** 시공예산 숫자 → 콤마 포맷 (예: 33000000 → "33,000,000") */
+function formatBudgetDisplay(value: string | number | undefined): string {
+  const num = typeof value === "string" ? value.replace(/\D/g, "") : String(value ?? "").replace(/\D/g, "");
+  if (!num) return "";
+  return Number(num).toLocaleString("ko-KR");
+}
+
+/** 시공예산 입력(콤마 포함) → 저장용 숫자 문자열 */
+function parseBudgetToSave(display: string): string {
+  const num = display.replace(/\D/g, "");
+  return num;
+}
 
 type PicItem = { id: number; name: string };
 
@@ -76,6 +91,9 @@ function DetailModal({
     const last = parts.pop() ?? "";
     return last || "202호";
   });
+  const [budgetDisplay, setBudgetDisplay] = useState(() =>
+    formatBudgetDisplay(data.budget ?? "33000000")
+  );
 
   const handleSearchAddress = () => {
     if (typeof window === "undefined") return;
@@ -125,6 +143,7 @@ function DetailModal({
     const fullRoad = detail && road.endsWith(detail) ? road : [road, detail].filter(Boolean).join(" ");
     const address = `${postcode} ${fullRoad}`.trim();
     const scope = scopeItems.filter((label) => fd.get(`scope_${label}`) === "on");
+    const budget = parseBudgetToSave(budgetDisplay);
     return {
       customerName: (fd.get("customerName") as string) ?? data.customerName,
       contact: (fd.get("contact") as string) ?? data.contact,
@@ -136,6 +155,8 @@ function DetailModal({
       note: (fd.get("note") as string) ?? "",
       consultedAt: (fd.get("consultedAt") as string) || undefined,
       scope,
+      budget: budget || undefined,
+      completionYear: (fd.get("completionYear") as string)?.trim() || undefined,
     };
   };
 
@@ -377,8 +398,12 @@ function DetailModal({
               <div className="flex items-center gap-2">
                 <input
                   type="text"
+                  name="completionYear"
+                  inputMode="numeric"
+                  maxLength={4}
                   className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  defaultValue="2002"
+                  defaultValue={data.completionYear ?? ""}
+                  placeholder="2002"
                 />
                 <span className="text-sm text-gray-600">년</span>
               </div>
@@ -511,8 +536,14 @@ function DetailModal({
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  defaultValue="33,000,000"
+                  inputMode="numeric"
+                  value={budgetDisplay}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, "");
+                    setBudgetDisplay(raw ? Number(raw).toLocaleString("ko-KR") : "");
+                  }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-right tabular-nums"
+                  placeholder="0"
                 />
                 <span className="text-sm text-gray-700">원</span>
               </div>
@@ -586,6 +617,8 @@ const emptyConsultation: Consultation = {
   pyung: 0,
   status: "접수",
   pic: "",
+  budget: undefined,
+  completionYear: undefined,
   date: "",
 };
 
@@ -626,6 +659,8 @@ export default function ConsultingPage() {
             note: item.note != null ? String(item.note) : undefined,
             consultedAt: item.consultedAt != null ? String(item.consultedAt) : undefined,
             scope: Array.isArray(item.scope) ? (item.scope as string[]) : undefined,
+            budget: item.budget != null ? String(item.budget) : undefined,
+            completionYear: item.completionYear != null ? String(item.completionYear) : undefined,
             date: "",
           }))
         );

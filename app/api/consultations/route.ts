@@ -45,6 +45,8 @@ export async function GET() {
         note: row.note,
         consultedAt: row.consulted_at != null ? String(row.consulted_at) : undefined,
         scope,
+        budget: row.budget != null ? String(row.budget) : undefined,
+        completionYear: row.completion_year != null ? String(row.completion_year) : undefined,
       };
     });
 
@@ -75,21 +77,25 @@ export async function POST(request: Request) {
       note,
       consultedAt,
       scope,
+      budget,
+      completionYear,
     } = body;
 
     const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
+    const budgetStr = budget != null ? String(budget) : null;
+    const completionYearStr = completionYear != null ? String(completionYear) : null;
 
     await sql`
-      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at, scope)
-      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson})
+      INSERT INTO consultations (company_id, customer_name, contact, region, address, pyung, status, pic, note, consulted_at, scope, budget, completion_year)
+      VALUES (${company.id}, ${customerName}, ${contact}, ${region}, ${address}, ${pyung}, ${status}, ${pic}, ${note}, ${consultedAt ?? null}, ${scopeJson}, ${budgetStr}, ${completionYearStr})
     `;
 
     return NextResponse.json({ message: "Success" }, { status: 200 });
   } catch (error) {
     console.error("DB Error:", error);
     const message =
-      error instanceof Error && /consulted_at|scope|column/i.test(error.message)
-        ? "DB에 consulted_at 또는 scope 컬럼이 없을 수 있습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql, sql/add_scope.sql 을 실행해 주세요."
+      error instanceof Error && /consulted_at|scope|budget|column/i.test(error.message)
+        ? "DB에 consulted_at, scope, budget 등 컬럼이 없을 수 있습니다. sql 마이그레이션을 실행해 주세요."
         : "Server Error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

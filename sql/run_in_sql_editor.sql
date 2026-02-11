@@ -21,3 +21,9 @@ CREATE TABLE IF NOT EXISTS company_admin_pin (
   company_id INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   pin TEXT NOT NULL
 );
+
+-- 5) 시공예산
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS budget TEXT;
+
+-- 6) 준공년도
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS completion_year TEXT;

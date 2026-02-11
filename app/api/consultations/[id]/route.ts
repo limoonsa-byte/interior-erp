@@ -44,48 +44,32 @@ export async function PATCH(
       note,
       consultedAt,
       scope,
+      budget,
+      completionYear,
     } = body;
 
-    const scopeJson =
-      scope !== undefined
-        ? Array.isArray(scope)
-          ? JSON.stringify(scope)
-          : null
-        : undefined;
+    const scopeJson = Array.isArray(scope) ? JSON.stringify(scope) : null;
+    const budgetStr = budget != null ? String(budget) : null;
+    const completionYearStr = completionYear != null ? String(completionYear) : null;
 
-    const result =
-      scopeJson !== undefined
-        ? await sql`
-            UPDATE consultations
-            SET
-              customer_name = COALESCE(${customerName ?? null}, customer_name),
-              contact = COALESCE(${contact ?? null}, contact),
-              region = COALESCE(${region ?? null}, region),
-              address = COALESCE(${address ?? null}, address),
-              pyung = COALESCE(${pyung ?? null}, pyung),
-              status = COALESCE(${status ?? null}, status),
-              pic = COALESCE(${pic ?? null}, pic),
-              note = COALESCE(${note ?? null}, note),
-              consulted_at = COALESCE(${consultedAt ?? null}, consulted_at),
-              scope = ${scopeJson}
-            WHERE id = ${consultationId} AND company_id = ${company.id}
-            RETURNING id
-          `
-        : await sql`
-            UPDATE consultations
-            SET
-              customer_name = COALESCE(${customerName ?? null}, customer_name),
-              contact = COALESCE(${contact ?? null}, contact),
-              region = COALESCE(${region ?? null}, region),
-              address = COALESCE(${address ?? null}, address),
-              pyung = COALESCE(${pyung ?? null}, pyung),
-              status = COALESCE(${status ?? null}, status),
-              pic = COALESCE(${pic ?? null}, pic),
-              note = COALESCE(${note ?? null}, note),
-              consulted_at = COALESCE(${consultedAt ?? null}, consulted_at)
-            WHERE id = ${consultationId} AND company_id = ${company.id}
-            RETURNING id
-          `;
+    const result = await sql`
+      UPDATE consultations
+      SET
+        customer_name = COALESCE(${customerName ?? null}, customer_name),
+        contact = COALESCE(${contact ?? null}, contact),
+        region = COALESCE(${region ?? null}, region),
+        address = COALESCE(${address ?? null}, address),
+        pyung = COALESCE(${pyung ?? null}, pyung),
+        status = COALESCE(${status ?? null}, status),
+        pic = COALESCE(${pic ?? null}, pic),
+        note = COALESCE(${note ?? null}, note),
+        consulted_at = COALESCE(${consultedAt ?? null}, consulted_at),
+        scope = ${scopeJson},
+        budget = ${budgetStr},
+        completion_year = ${completionYearStr}
+      WHERE id = ${consultationId} AND company_id = ${company.id}
+      RETURNING id
+    `;
 
     if (result.rows.length === 0) {
       return NextResponse.json(
