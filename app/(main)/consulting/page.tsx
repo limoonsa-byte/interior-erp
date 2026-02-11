@@ -639,6 +639,7 @@ export default function ConsultingPage() {
   const [active, setActive] = useState<Consultation | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [picList, setPicList] = useState<PicItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const loadFromDb = () => {
     fetch("/api/consultations")
@@ -682,6 +683,48 @@ export default function ConsultingPage() {
       })
       .catch(() => {});
   }, []);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(consultations.map((c) => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) {
+      alert("삭제할 상담을 선택해 주세요.");
+      return;
+    }
+    if (!confirm(`선택한 ${selectedIds.size}건을 삭제할까요?`)) return;
+    const ids = Array.from(selectedIds);
+    Promise.all(
+      ids.map((id) =>
+        fetch(`/api/consultations/${id}`, { method: "DELETE" })
+      )
+    )
+      .then((responses) => {
+        const failed = responses.filter((r) => !r.ok);
+        if (failed.length > 0) {
+          alert(`일부 삭제에 실패했습니다. (${failed.length}건)`);
+        } else {
+          alert(`${ids.length}건 삭제되었습니다.`);
+        }
+        setSelectedIds(new Set());
+        loadFromDb();
+      })
+      .catch(() => alert("삭제 중 오류가 발생했습니다."));
+  };
 
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -780,7 +823,12 @@ export default function ConsultingPage() {
           <thead className="border-b border-gray-200 bg-gray-50 text-gray-700">
             <tr>
               <th className="w-10 p-3">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  checked={consultations.length > 0 && selectedIds.size === consultations.length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="cursor-pointer"
+                />
               </th>
               <th className="w-16 p-3">No.</th>
               <th className="p-3">고객명</th>
@@ -793,7 +841,12 @@ export default function ConsultingPage() {
             {consultations.map((item, idx) => (
               <tr key={item.id} className="text-gray-700 hover:bg-gray-50">
                 <td className="p-3">
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => handleToggleSelect(item.id)}
+                    className="cursor-pointer"
+                  />
                 </td>
                 <td className="p-3">{idx + 1}</td>
                 <td className="p-3 font-medium">
@@ -849,7 +902,11 @@ export default function ConsultingPage() {
           <button className="rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
             고객평가 전송
           </button>
-          <button className="rounded border border-red-400 bg-white px-4 py-2 text-sm text-red-500 hover:bg-red-50">
+          <button
+            type="button"
+            onClick={handleDeleteSelected}
+            className="rounded border border-red-400 bg-white px-4 py-2 text-sm text-red-500 hover:bg-red-50"
+          >
             선택삭제
           </button>
           <button

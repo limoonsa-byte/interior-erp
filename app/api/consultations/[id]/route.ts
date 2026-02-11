@@ -88,3 +88,46 @@ export async function PATCH(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+/**
+ * 상담 삭제 (선택삭제 시)
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const company = await getCompanyFromCookie();
+    if (!company) {
+      return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const consultationId = parseInt(id, 10);
+    if (Number.isNaN(consultationId)) {
+      return NextResponse.json({ error: "잘못된 ID" }, { status: 400 });
+    }
+
+    const result = await sql`
+      DELETE FROM consultations
+      WHERE id = ${consultationId} AND company_id = ${company.id}
+      RETURNING id
+    `;
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "해당 상담을 찾을 수 없거나 삭제 권한이 없습니다." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: "삭제되었습니다." }, { status: 200 });
+  } catch (error) {
+    console.error("consultations DELETE error:", error);
+    const message =
+      error instanceof Error && /consulted_at|column/i.test(error.message)
+        ? "DB에 consulted_at 또는 scope 컬럼이 없을 수 있습니다. Vercel/Neon SQL에서 sql/add_consulted_at.sql, sql/add_scope.sql 을 실행해 주세요."
+        : "Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
