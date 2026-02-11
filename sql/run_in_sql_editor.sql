@@ -33,3 +33,9 @@ ALTER TABLE consultations ADD COLUMN IF NOT EXISTS site_measurement_at TEXT;
 
 -- 8) 견적미팅날짜
 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS estimate_meeting_at TEXT;
+
+-- 9) region 컬럼 제거 (선택 사항, 앱에서 미사용)
+ALTER TABLE consultations DROP COLUMN IF EXISTS region;
+
+-- 10) 회사별 도면 보관함 API URL
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS drawing_list_api_url TEXT;

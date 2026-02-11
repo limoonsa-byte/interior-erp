@@ -2,6 +2,41 @@
 
 import React, { useEffect, useState } from "react";
 
+/** 도면 보관함 API에서 한 행 형식 (ERP에서 목록 불러올 때) */
+type DrawingListRow = {
+  siteName?: string;
+  savedAt?: string;
+  summary?: string;
+  data?: { zones?: { name?: string; area?: string }[]; doors?: unknown[]; height?: number };
+  현장명?: string;
+  저장시각?: string;
+  요약?: string;
+  데이터?: { zones?: { name?: string; area?: string }[]; doors?: unknown[]; height?: number };
+};
+
+/** 도면 JSON → 견적용 payload (ERP에서 불러온 도면 데이터 변환) */
+function drawingDataToPayload(
+  drawingData: DrawingListRow["data"],
+  summary?: string
+): SmartFieldEstimatePayload {
+  if (!drawingData) return {};
+  const zones = drawingData.zones || [];
+  const doors = drawingData.doors || [];
+  const height = drawingData.height;
+  const roomAreas = zones.map((z) => ({ name: z.name || "", area: parseFloat(String(z.area)) || 0 }));
+  let totalArea = 0;
+  roomAreas.forEach((r) => (totalArea += r.area));
+  const dimensions: string[] = [];
+  if (height) dimensions.push("천장고 " + (height / 1000).toFixed(1) + "m");
+  if (summary) dimensions.push(summary);
+  return {
+    doorCount: doors.length,
+    roomAreas,
+    totalArea,
+    dimensions: dimensions.join(", "),
+  };
+}
+
 function getTodayDateLocal(): string {
   const d = new Date();
   const y = d.getFullYear();
@@ -21,6 +56,15 @@ type EstimateItem = {
   qty: number;
   unitPrice: number;
   note: string;
+};
+
+/** 스마트 현장관리에서 보내는 데이터 형식 (해당 앱에서 postMessage로 전달 시 사용) */
+export type SmartFieldEstimatePayload = {
+  doorCount?: number;
+  roomAreas?: { name: string; area: number }[];
+  totalArea?: number;
+  dimensions?: string;
+  items?: EstimateItem[];
 };
 
 type Estimate = {
@@ -47,6 +91,59 @@ const emptyItem: EstimateItem = {
 
 function amount(item: EstimateItem): number {
   return Number(item.qty) * Number(item.unitPrice);
+}
+
+/** 스마트 현장관리 페이로드 → 견적 항목으로 변환 (치수/문 개수/방면적 등) */
+function smartFieldPayloadToItems(payload: SmartFieldEstimatePayload): EstimateItem[] {
+  const result: EstimateItem[] = [];
+  if (payload.items && payload.items.length > 0) {
+    payload.items.forEach((it) =>
+      result.push({
+        category: it.category || "",
+        spec: it.spec || "",
+        unit: it.unit || "식",
+        qty: Number(it.qty) || 0,
+        unitPrice: Number(it.unitPrice) || 0,
+        note: it.note || "",
+      })
+    );
+    return result;
+  }
+  if (payload.doorCount != null && payload.doorCount > 0) {
+    result.push({
+      category: "문",
+      spec: "문 개수",
+      unit: "개",
+      qty: Number(payload.doorCount),
+      unitPrice: 0,
+      note: "",
+    });
+  }
+  if (payload.roomAreas && payload.roomAreas.length > 0) {
+    payload.roomAreas.forEach((r) => {
+      result.push({
+        category: "방면적",
+        spec: r.name || "",
+        unit: "m²",
+        qty: Number(r.area) || 0,
+        unitPrice: 0,
+        note: "",
+      });
+    });
+  }
+  if (payload.totalArea != null && payload.totalArea > 0 && result.every((i) => i.category !== "전체면적")) {
+    result.unshift({
+      category: "전체면적",
+      spec: "계",
+      unit: "m²",
+      qty: Number(payload.totalArea),
+      unitPrice: 0,
+      note: payload.dimensions || "",
+    });
+  } else if (payload.dimensions) {
+    if (result.length > 0) result[0].note = payload.dimensions;
+  }
+  return result;
 }
 
 function EstimateForm({
@@ -80,7 +177,65 @@ function EstimateForm({
     }
   }, [consultationPreFill, isEdit]);
 
+  const [smartFieldModalOpen, setSmartFieldModalOpen] = useState(false);
+  const [smartFieldListUrl, setSmartFieldListUrl] = useState("");
+  const [smartFieldList, setSmartFieldList] = useState<DrawingListRow[] | null>(null);
+  const [smartFieldLoading, setSmartFieldLoading] = useState(false);
+
+  // 회사 정보에서 API URL 가져오기
+  useEffect(() => {
+    fetch("/api/company")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.drawingListApiUrl) {
+          setSmartFieldListUrl(data.drawingListApiUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const addRow = () => setItems((prev) => [...prev, { ...emptyItem }]);
+  const openSmartFieldModal = () => {
+    setSmartFieldModalOpen(true);
+    setSmartFieldList(null);
+  };
+  const loadSmartFieldList = () => {
+    const url = smartFieldListUrl.trim();
+    if (!url) {
+      alert("도면 목록 API URL을 입력해 주세요.");
+      return;
+    }
+    setSmartFieldLoading(true);
+    setSmartFieldList(null);
+    fetch(url)
+      .then((res) => res.json())
+      .then((raw) => {
+        let arr: unknown[] = [];
+        if (Array.isArray(raw)) arr = raw;
+        else if (raw && typeof raw === "object") arr = (raw as { items?: unknown[] }).items ?? (raw as { data?: unknown[] }).data ?? (raw as { rows?: unknown[] }).rows ?? [];
+        const list = arr as DrawingListRow[];
+        setSmartFieldList(list);
+        if (list.length === 0) alert("불러온 목록이 비어 있습니다. 스크립트에서 시트/열 구성을 확인해 주세요.");
+      })
+      .catch(() => {
+        alert("목록을 불러오지 못했습니다. URL과 CORS 설정을 확인해 주세요.");
+        setSmartFieldList([]);
+      })
+      .finally(() => setSmartFieldLoading(false));
+  };
+  const selectDrawing = (row: DrawingListRow) => {
+    const data = row.data ?? row.데이터;
+    const summary = row.summary ?? row.요약 ?? "";
+    const payload = drawingDataToPayload(data, summary);
+    const newItems = smartFieldPayloadToItems(payload);
+    if (newItems.length > 0) {
+      setItems((prev) => [...newItems, ...prev]);
+      setSmartFieldModalOpen(false);
+      alert(`${newItems.length}개 항목을 견적에 반영했습니다. 단가는 입력해 주세요.`);
+    } else {
+      alert("선택한 도면에 사용할 수 있는 데이터가 없습니다.");
+    }
+  };
   const removeRow = (idx: number) => {
     if (items.length <= 1) return;
     setItems((prev) => prev.filter((_, i) => i !== idx));
@@ -203,12 +358,76 @@ function EstimateForm({
         </div>
       </div>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-gray-800">견적 항목</h3>
-        <button type="button" onClick={addRow} className="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50">
-          + 항목 추가
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={openSmartFieldModal}
+            className="rounded-lg border border-emerald-600 bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+          >
+            도면 보관함에서 불러오기
+          </button>
+          <button type="button" onClick={addRow} className="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50">
+            + 항목 추가
+          </button>
+        </div>
       </div>
+      <p className="mb-2 text-xs text-gray-500">
+        &quot;도면 보관함에서 불러오기&quot;로 스마트 현장관리 도면 목록 API에서 한 건을 선택하면 문 개수·방 면적·치수가 견적 항목에 자동 입력됩니다.
+      </p>
+
+      {smartFieldModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">도면 보관함에서 불러오기</h3>
+              <button type="button" onClick={() => setSmartFieldModalOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-gray-600">도면 목록 API URL을 입력한 뒤 목록 불러오기를 누르세요. (스마트 현장관리 쪽에서 API 제공 시 사용)</p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  placeholder="https://script.google.com/.../exec"
+                  value={smartFieldListUrl}
+                  onChange={(e) => setSmartFieldListUrl(e.target.value)}
+                />
+                <button type="button" onClick={loadSmartFieldList} disabled={smartFieldLoading} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+                  {smartFieldLoading ? "불러오는 중..." : "목록 불러오기"}
+                </button>
+              </div>
+              {smartFieldList && (
+                <div className="overflow-auto max-h-64 rounded-lg border border-gray-200">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        <th className="p-2">현장명</th>
+                        <th className="p-2">저장시각</th>
+                        <th className="p-2">요약</th>
+                        <th className="w-20 p-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {smartFieldList.map((row, idx) => (
+                        <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                          <td className="p-2">{row.siteName ?? row.현장명 ?? "-"}</td>
+                          <td className="p-2 text-gray-600">{row.savedAt ?? row.저장시각 ?? "-"}</td>
+                          <td className="p-2 text-gray-600 truncate max-w-[120px]" title={row.summary ?? row.요약 ?? ""}>{row.summary ?? row.요약 ?? "-"}</td>
+                          <td className="p-2">
+                            <button type="button" onClick={() => selectDrawing(row)} className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700">선택</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>

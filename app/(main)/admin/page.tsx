@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 type PicItem = { id: number; name: string };
 
-type ModalKind = null | "pics" | "password-change";
+type ModalKind = null | "pics" | "password-change" | "drawing-api";
 
 export default function AdminPage() {
   const [pinStatus, setPinStatus] = useState<{ hasPin: boolean } | null>(null);
@@ -22,6 +22,10 @@ export default function AdminPage() {
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwMessage, setPwMessage] = useState("");
+
+  const [drawingApiUrl, setDrawingApiUrl] = useState("");
+  const [drawingApiLoading, setDrawingApiLoading] = useState(false);
+  const [drawingApiMessage, setDrawingApiMessage] = useState("");
 
   const loadPinStatus = useCallback(() => {
     fetch("/api/company/admin-pin")
@@ -91,6 +95,16 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (modal === "pics") loadPics();
+    if (modal === "drawing-api") {
+      setDrawingApiLoading(true);
+      fetch("/api/company")
+        .then((res) => res.json())
+        .then((data) => {
+          setDrawingApiUrl(data.drawingListApiUrl || "");
+        })
+        .catch(() => {})
+        .finally(() => setDrawingApiLoading(false));
+    }
   }, [modal, loadPics]);
 
   useEffect(() => {
@@ -179,6 +193,30 @@ export default function AdminPage() {
       .catch(() => setPwMessage("오류가 발생했습니다."));
   };
 
+  const handleSaveDrawingApi = () => {
+    setDrawingApiMessage("");
+    setDrawingApiLoading(true);
+    fetch("/api/company", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drawingListApiUrl: drawingApiUrl.trim() }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setDrawingApiMessage("저장되었습니다.");
+          setTimeout(() => {
+            setModal(null);
+            setDrawingApiMessage("");
+          }, 1500);
+        } else {
+          setDrawingApiMessage((data as { error?: string }).error || "저장 실패");
+        }
+      })
+      .catch(() => setDrawingApiMessage("오류가 발생했습니다."))
+      .finally(() => setDrawingApiLoading(false));
+  };
+
   if (pinStatus === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
@@ -232,6 +270,15 @@ export default function AdminPage() {
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-800 hover:bg-gray-100"
           >
             담당자 설정
+          </button>
+        </li>
+        <li>
+          <button
+            type="button"
+            onClick={() => setModal("drawing-api")}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-800 hover:bg-gray-100"
+          >
+            도면 보관함 API 설정
           </button>
         </li>
         <li>
@@ -309,6 +356,62 @@ export default function AdminPage() {
                 ))}
               </ul>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 도면 보관함 API 설정 모달 */}
+      {modal === "drawing-api" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-800">도면 보관함 API 설정</h2>
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mb-3 text-sm text-gray-600">
+              Google Apps Script 웹앱 URL을 입력하세요. 견적서 작성 시 도면 보관함에서 불러오기 기능에 사용됩니다.
+            </p>
+            <div className="mb-3">
+              <label className="mb-1 block text-xs font-medium text-gray-600">API URL (action=list 포함)</label>
+              <input
+                type="url"
+                value={drawingApiUrl}
+                onChange={(e) => setDrawingApiUrl(e.target.value)}
+                placeholder="https://script.google.com/.../exec?action=list"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                disabled={drawingApiLoading}
+              />
+            </div>
+            {drawingApiMessage && (
+              <p className={`mb-3 text-sm ${drawingApiMessage.includes("저장되었습니다") ? "text-green-600" : "text-red-600"}`}>
+                {drawingApiMessage}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="flex-1 rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                disabled={drawingApiLoading}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveDrawingApi}
+                className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={drawingApiLoading}
+              >
+                {drawingApiLoading ? "저장 중..." : "저장"}
+              </button>
+            </div>
           </div>
         </div>
       )}
