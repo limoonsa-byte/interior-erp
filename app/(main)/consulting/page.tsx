@@ -11,24 +11,32 @@ type Consultation = {
   pyung: number;
   status: string;
   pic: string;
+  note?: string;
   date: string;
 };
 
 function DetailModal({
   data,
+  editId,
   onClose,
   onSaved,
 }: {
   data: Consultation;
+  /** 수정 시 상담 id, 신규일 땐 null */
+  editId: number | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
-  const [postcode, setPostcode] = useState("42496");
-  const [roadAddress, setRoadAddress] = useState(
-    "대구 남구 앞산순환로69길 19-1"
+  const [postcode, setPostcode] = useState(
+    data.address ? data.address.slice(0, 5).replace(/\D/g, "") || "42496" : "42496"
   );
-  const [detailAddress, setDetailAddress] = useState("202호");
+  const [roadAddress, setRoadAddress] = useState(
+    data.address?.replace(/^\d+\s*/, "").trim() || "대구 남구 앞산순환로69길 19-1"
+  );
+  const [detailAddress, setDetailAddress] = useState(
+    data.address?.includes("호") ? data.address.split(" ").pop() || "202호" : "202호"
+  );
 
   const handleSearchAddress = () => {
     if (typeof window === "undefined") return;
@@ -71,29 +79,43 @@ function DetailModal({
     }
   };
 
+  const buildPayload = () => {
+    if (!formRef.current) return null;
+    const fd = new FormData(formRef.current);
+    const address = `${postcode} ${roadAddress} ${detailAddress}`.trim();
+    return {
+      customerName: (fd.get("customerName") as string) ?? data.customerName,
+      contact: (fd.get("contact") as string) ?? data.contact,
+      region: (fd.get("region") as string) ?? data.region,
+      address,
+      pyung: Number(fd.get("pyung")) || data.pyung,
+      status: (fd.get("status") as string) ?? data.status,
+      pic: (fd.get("pic") as string) ?? data.pic,
+      note: (fd.get("note") as string) ?? "",
+    };
+  };
+
   const handleAction = (mode: "save" | "estimate") => {
     if (!formRef.current) return;
-    const fd = new FormData(formRef.current);
-    const payload = Object.fromEntries(fd.entries());
+    const payload = buildPayload();
+    if (!payload) return;
 
     if (mode === "save") {
-      fetch("/api/consultations", {
-        method: "POST",
+      // editId가 있으면 무조건 수정(PATCH), 없으면 신규(POST)
+      const isEdit = editId !== null && editId > 0;
+      const url = isEdit
+        ? `/api/consultations/${editId}`
+        : "/api/consultations";
+      const method = isEdit ? "PATCH" : "POST";
+
+      fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName: data.customerName,
-          contact: data.contact,
-          region: data.region,
-          address: `${postcode} ${roadAddress} ${detailAddress}`.trim(),
-          pyung: data.pyung,
-          status: data.status,
-          pic: data.pic,
-          note: payload.note ?? "",
-        }),
+        body: JSON.stringify(payload),
       })
         .then((res) => {
           if (!res.ok) throw new Error("save failed");
-          alert("상담이 저장되었습니다.");
+          alert(isEdit ? "상담이 수정되었습니다." : "상담이 등록되었습니다.");
           onClose();
           onSaved();
         })
@@ -138,7 +160,8 @@ function DetailModal({
                   <input
                     type="radio"
                     name="status"
-                    defaultChecked={label === "접수"}
+                    value={label}
+                    defaultChecked={label === (data.status || "접수")}
                   />
                   {label}
                 </label>
@@ -190,6 +213,7 @@ function DetailModal({
               </label>
               <input
                 type="text"
+                name="customerName"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 defaultValue={data.customerName}
               />
@@ -199,13 +223,14 @@ function DetailModal({
                 지역
               </label>
               <select
+                name="region"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 defaultValue={data.region}
               >
-                <option>서울특별시</option>
-                <option>경기도</option>
-                <option>대구광역시</option>
-                <option>부산광역시</option>
+                <option value="서울특별시">서울특별시</option>
+                <option value="경기도">경기도</option>
+                <option value="대구광역시">대구광역시</option>
+                <option value="부산광역시">부산광역시</option>
               </select>
             </div>
             <div>
@@ -227,6 +252,7 @@ function DetailModal({
               </label>
               <input
                 type="text"
+                name="contact"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 defaultValue={data.contact}
               />
@@ -276,13 +302,14 @@ function DetailModal({
               <div className="flex items-center gap-3">
                 <input
                   type="range"
+                  name="pyung"
                   min={10}
                   max={60}
-                  defaultValue={data.pyung}
+                  defaultValue={data.pyung || 0}
                   className="flex-1"
                 />
                 <span className="w-16 text-right text-sm text-gray-800">
-                  {data.pyung}평
+                  {(data.pyung || 0)}평
                 </span>
               </div>
             </div>
@@ -381,8 +408,14 @@ function DetailModal({
               <label className="mb-1 block text-sm font-semibold text-gray-700">
                 담당자
               </label>
-              <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                <option>[가맹점교육용] 가맹점교육용</option>
+              <select
+                name="pic"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                defaultValue={data.pic}
+              >
+                <option value="">선택</option>
+                <option value="김담당">김담당</option>
+                <option value="[가맹점교육용] 가맹점교육용">[가맹점교육용] 가맹점교육용</option>
               </select>
             </div>
           </div>
@@ -392,8 +425,9 @@ function DetailModal({
               요청사항
             </label>
             <textarea
+              name="note"
               className="h-24 w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              defaultValue="빠른시공"
+              defaultValue={data.note ?? "빠른시공"}
             />
           </div>
         </section>
@@ -421,6 +455,18 @@ function DetailModal({
   );
 }
 
+const emptyConsultation: Consultation = {
+  id: 0,
+  customerName: "",
+  contact: "",
+  region: "대구광역시",
+  address: "",
+  pyung: 0,
+  status: "접수",
+  pic: "",
+  date: "",
+};
+
 export default function ConsultingPage() {
   const [consultations, setConsultations] = useState<Consultation[]>([
     {
@@ -436,19 +482,29 @@ export default function ConsultingPage() {
     },
   ]);
   const [active, setActive] = useState<Consultation | null>(null);
+  /** 수정 시 해당 상담 id, 신규등록 시 null */
+  const [editId, setEditId] = useState<number | null>(null);
 
   const loadFromDb = () => {
     fetch("/api/consultations")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setConsultations(
-            data.map((item) => ({
-              ...item,
-              pyung: Number(item.pyung ?? 0),
-            }))
-          );
-        }
+        if (!Array.isArray(data)) return;
+        // DB 데이터로 항상 갱신 (수정 후에도 메인 목록에 반영)
+        setConsultations(
+          data.map((item: Record<string, unknown>) => ({
+            id: Number(item.id),
+            customerName: String(item.customerName ?? item.customer_name ?? ""),
+            contact: String(item.contact ?? ""),
+            region: String(item.region ?? ""),
+            address: String(item.address ?? ""),
+            pyung: Number(item.pyung ?? 0),
+            status: String(item.status ?? ""),
+            pic: String(item.pic ?? ""),
+            note: item.note != null ? String(item.note) : undefined,
+            date: "",
+          }))
+        );
       })
       .catch((err) => {
         console.error("consultations load error", err);
@@ -585,7 +641,10 @@ export default function ConsultingPage() {
                 <td className="p-3 font-medium">
                   <button
                     type="button"
-                    onClick={() => setActive(item)}
+                    onClick={() => {
+                      setActive(item);
+                      setEditId(item.id);
+                    }}
                     className="text-blue-600 underline-offset-2 hover:underline"
                   >
                     {item.customerName}
@@ -636,15 +695,27 @@ export default function ConsultingPage() {
           <button className="rounded border border-red-400 bg-white px-4 py-2 text-sm text-red-500 hover:bg-red-50">
             선택삭제
           </button>
-          <button className="rounded border border-blue-500 bg-white px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">
+          <button
+            type="button"
+            onClick={() => {
+              setActive(emptyConsultation);
+              setEditId(null);
+            }}
+            className="rounded border border-blue-500 bg-white px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50"
+          >
             신규등록
           </button>
         </div>
       </div>
       {active && (
         <DetailModal
+          key={editId === null ? "new" : `edit-${editId}`}
           data={active}
-          onClose={() => setActive(null)}
+          editId={editId}
+          onClose={() => {
+            setActive(null);
+            setEditId(null);
+          }}
           onSaved={loadFromDb}
         />
       )}
