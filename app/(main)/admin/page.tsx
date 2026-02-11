@@ -240,7 +240,7 @@ export default function AdminPage() {
             onClick={() => setModal("password-change")}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-800 hover:bg-gray-100"
           >
-            비밀번호 변경
+            관리 비밀번호 변경
           </button>
         </li>
       </ul>
@@ -313,12 +313,12 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* 비밀번호 변경 모달 */}
+      {/* 관리 비밀번호 변경 모달 */}
       {modal === "password-change" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800">비밀번호 변경</h2>
+              <h2 className="text-base font-semibold text-gray-800">관리 비밀번호 변경</h2>
               <button
                 type="button"
                 onClick={() => setModal(null)}
